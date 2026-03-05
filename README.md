@@ -84,6 +84,3 @@ npm run test
 ## 📄 License
 
 Distributed under the MIT License. See `LICENSE` for more information.
-
----
-Built with ❤️ by [qarib](https://github.com/qaribhaider)
