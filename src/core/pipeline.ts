@@ -41,9 +41,23 @@ export class Pipeline {
     this.delivery = ProviderFactory.createDelivery(config);
   }
 
-  async run(sources: ScraperSource[]) {
-    console.log(`[Pipeline] Scraping ${sources.length} sources...`);
-    const results = await this.orchestrator.runAll(sources);
+  async run(sources: ScraperSource[], force = false) {
+    const cooldown = this.config.preferences.sourceCooldownMinutes;
+    const activeSources = sources.filter((s) => {
+      if (!force && this.healthStore.isThrottled(s.id, cooldown)) {
+        console.log(`[Pipeline] Skipping ${s.id} (last check was < ${cooldown}m ago)`);
+        return false;
+      }
+      return true;
+    });
+
+    if (activeSources.length === 0) {
+      console.log('[Pipeline] All sources are cooled down. Nothing to scrape.');
+      return [];
+    }
+
+    console.log(`[Pipeline] Scraping ${activeSources.length} sources...`);
+    const results = await this.orchestrator.runAll(activeSources);
 
     // Record health
     for (const res of results) {
@@ -83,6 +97,7 @@ export class Pipeline {
 
     if (highSignal.length === 0) {
       console.log('[Pipeline] No high-signal items found today.');
+      console.log('[Pipeline] Execution complete! 🥂');
       return [];
     }
 
@@ -109,13 +124,13 @@ export class Pipeline {
 
     // Delivery
     const digest: Digest = {
-      items: enrichedItems.map(item => ({
+      items: enrichedItems.map((item) => ({
         title: item.title,
         url: item.url,
         summary: item.summary,
         category: item.category,
         source: item.source,
-        score: item.score
+        score: item.score,
       })),
       metadata: {
         total_new_items: newItems.length,

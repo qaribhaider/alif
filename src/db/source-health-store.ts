@@ -25,6 +25,18 @@ export class SourceHealthStore {
       SELECT * FROM source_health WHERE source = ? ORDER BY last_check DESC LIMIT 1
     `,
       )
-      .get(source);
+      .get(source) as { last_check: string } | undefined;
+  }
+
+  isThrottled(source: string, minutes: number): boolean {
+    const latest = this.getLatest(source);
+    if (!latest) return false;
+
+    // SQLite CURRENT_TIMESTAMP is UTC
+    const lastCheck = new Date(latest.last_check + 'Z').getTime();
+    const now = Date.now();
+    const diffMinutes = (now - lastCheck) / (1000 * 60);
+
+    return diffMinutes < minutes;
   }
 }

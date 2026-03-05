@@ -18,8 +18,9 @@ program
 program
   .command('run')
   .description('Run the AI Signal Digest pipeline')
-  .action(async () => {
-    await runCommand();
+  .option('-f, --force', 'Bypass source cooldown')
+  .action(async (options) => {
+    await runCommand(options);
   });
 
 program

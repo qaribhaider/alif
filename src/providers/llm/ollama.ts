@@ -3,7 +3,7 @@ import { LLMProvider, AnalysisResult } from './index.js';
 import { parseLLMJson } from './utils.js';
 
 export class OllamaProvider implements LLMProvider {
-  constructor(private options: { baseUrl: string; model: string }) { }
+  constructor(private options: { baseUrl: string; model: string }) {}
 
   async analyze(articles: { title: string; content?: string }[]): Promise<AnalysisResult[]> {
     if (articles.length === 0) return [];
@@ -27,9 +27,15 @@ ${articles.map((a, idx) => `${idx + 1}. TITLE: ${a.title}\nCONTENT: ${a.content 
         prompt: prompt,
         stream: false,
         format: 'json',
+        options: {
+          stop: ['<think>', '</think>', 'Reasoning:'],
+        },
       });
 
-      return parseLLMJson(response.data.response);
+      const ollamaData = response.data;
+      const finalResponse = ollamaData.response || ollamaData.thinking || '';
+
+      return parseLLMJson(finalResponse);
     } catch (error) {
       console.error(`[Ollama] Error: ${error instanceof Error ? error.message : String(error)}`);
       return articles.map(() => ({ summary: null, category: 'Uncategorized' }));

@@ -19,6 +19,7 @@ export const ConfigSchema = z.object({
   preferences: z.object({
     signalThreshold: z.number().min(0).max(100).default(60),
     maxItemsPerCategory: z.number().min(1).default(5),
+    sourceCooldownMinutes: z.number().min(0).default(5),
   }),
   dbPath: z.string(),
   feedsPath: z.string(),
