@@ -9,6 +9,7 @@ import { Database } from 'better-sqlite3';
 import { ProviderFactory } from '../providers/factory.js';
 import { LLMProvider } from '../providers/llm/index.js';
 import { DeliveryProvider, Digest } from '../providers/delivery/index.js';
+import { BASE_KEYWORDS } from './default-keywords.js';
 
 export class Pipeline {
   private orchestrator: ScraperOrchestrator;
@@ -24,16 +25,13 @@ export class Pipeline {
     db: Database,
   ) {
     this.orchestrator = new ScraperOrchestrator();
-    // Hardcoded keywords for now, can be moved to config later
-    this.scorer = new KeywordScorer({
-      breakthrough: 20,
-      'gpt-5': 30,
-      o1: 20,
-      deepseek: 25,
-      'open source': 15,
-      agi: 15,
-      agent: 15,
-    });
+
+    const mergedKeywords = {
+      ...BASE_KEYWORDS,
+      ...(config.preferences.customKeywords || {}),
+    };
+    this.scorer = new KeywordScorer(mergedKeywords);
+
     this.deduplicator = new Deduplicator();
     this.articleStore = new ArticleStore(db);
     this.healthStore = new SourceHealthStore(db);

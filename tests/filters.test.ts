@@ -15,6 +15,25 @@ describe('Filters', () => {
       };
       expect(scorer.score(article)).toBe(60);
     });
+
+    it('should prioritize overridden keywords and include new ones', () => {
+      // Simulate merging mechanics from pipeline
+      const BASE = { 'gpt-4': 50, ai: 10 };
+      const CUSTOM = { 'gpt-4': 100, custom_tool: 30, ai: 0 };
+      const merged = { ...BASE, ...CUSTOM };
+
+      const scorer = new KeywordScorer(merged);
+      const article = {
+        id: '1',
+        title: 'New GPT-4 details using custom_tool',
+        content: 'AI is changing the world',
+        source: 'test',
+        url: 'http://example.com',
+      };
+
+      // GPT-4 (100) + custom_tool (30) + AI (0) = 130
+      expect(scorer.score(article)).toBe(130);
+    });
   });
 
   describe('Deduplicator', () => {

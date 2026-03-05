@@ -62,9 +62,25 @@ Alif is built with extreme modularity. Everything from scrapers to LLM providers
 - **Persistence**: Local SQLite database handles article deduplication and history.
 - **Workflow**: `Scraper` → `Deduplicator` → `Keyword Scorer` → `LLM Analyzer` → `Delivery`.
 
-### Customizing Sources
+### Customizing Sources & Keywords
 
 Your feeds are stored in `~/.config/alif/feeds.json`. You can add any source using the supported types: `rss`, `api`, `json`, or `scrape`.
+
+**Keyword Signal Overrides**
+Alif ships with a set of default base keywords. If you want to change what Alif considers "high-signal" (or silence certain topics), add a `customKeywords` object to the `preferences` section in `~/.config/alif/config.json`:
+
+```json
+"preferences": {
+  "signalThreshold": 60,
+  "customKeywords": {
+    "my-favorite-framework": 100,
+    "topic-i-want-to-ignore": 0,
+    "gpt-5": 50
+  }
+}
+```
+
+_Note: Your custom keywords will be merged with the base keywords. If you define a key that already exists, your weight will override the default._
 
 ### Project Structure
 

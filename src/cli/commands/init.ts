@@ -80,6 +80,7 @@ export async function initCommand() {
       signalThreshold: 60,
       maxItemsPerCategory: 5,
       sourceCooldownMinutes: 5,
+      customKeywords: {},
     },
     dbPath: path.join(configDir, 'alif.db'),
     feedsPath: path.join(configDir, 'feeds.json'),
