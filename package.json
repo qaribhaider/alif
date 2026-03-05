@@ -1,11 +1,10 @@
 {
   "name": "alif-digest",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Autonomous AI Signal Digest CLI for tracking high-signal AI breakthroughs.",
   "type": "module",
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "bin": {
     "alif": "./dist/cli/index.js"
