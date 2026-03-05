@@ -1,4 +1,4 @@
-# 🚀 Alif
+# 🚀 Alif-Digest
 
 **The Autonomous AI Signal Digest CLI.**
 
@@ -16,7 +16,7 @@ Alif helps you track AI breakthroughs by aggregating and analyzing high-signal s
 ### 1. Install
 
 ```bash
-npm install -g .
+npm install -g alif-digest
 ```
 
 ### 2. Setup
