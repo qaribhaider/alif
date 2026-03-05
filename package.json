@@ -1,6 +1,6 @@
 {
   "name": "alif-digest",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Autonomous AI Signal Digest CLI for tracking high-signal AI breakthroughs.",
   "type": "module",
   "publishConfig": {
