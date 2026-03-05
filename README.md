@@ -72,6 +72,15 @@ npm run test
 > [!TIP]
 > **Developer Hint**: The CLI looks for configuration in `~/.config/alif/config.json`. If you are running in development, you still need to run `npm run dev -- init` once to generate your local config and database path.
 
+### Troubleshooting Husky (GUI / GitHub Desktop)
+If you're using a GUI client like GitHub Desktop on macOS and the pre-commit hooks fail because `npm` or `node` is not found, you need to ensure Husky can find your PATH. 
+
+Run the following in your terminal:
+```bash
+mkdir -p ~/.config/husky
+echo 'export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"' > ~/.config/husky/init.sh
+```
+
 ### Contributing
 1. Fork the repo.
 2. Create your feature branch (`git checkout -b feature/amazing-scraper`).
