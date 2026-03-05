@@ -126,6 +126,10 @@ echo 'export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"' > ~/.config/husky/in
 
 ---
 
+## 📢 Acknowledgements
+
+Special thanks to [Roland](https://github.com/rolandbrecht/), whose initial technical foundation helped turn this concept into a reality.
+
 ## 📄 License
 
 Distributed under the MIT License. See `LICENSE` for more information.
