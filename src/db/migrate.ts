@@ -37,6 +37,9 @@ const MIGRATIONS = [
   `
   ALTER TABLE schedules ADD COLUMN scheduled_time TEXT;
   `,
+  `
+  ALTER TABLE articles ADD COLUMN delivered INTEGER DEFAULT 0;
+  `,
 ];
 
 export function runMigrations(db: Database) {

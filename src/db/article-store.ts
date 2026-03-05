@@ -11,6 +11,7 @@ export interface Article {
   published_at?: string;
   score?: number;
   digest_date: string;
+  delivered?: number;
 }
 
 export class ArticleStore {
@@ -18,8 +19,8 @@ export class ArticleStore {
 
   upsert(article: Article) {
     const stmt = this.db.prepare(`
-      INSERT INTO articles (id, title, url, source, content, summary, category, published_at, score, digest_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO articles (id, title, url, source, content, summary, category, published_at, score, digest_date, delivered)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         title = excluded.title,
         summary = excluded.summary,
@@ -38,7 +39,31 @@ export class ArticleStore {
       article.published_at || null,
       article.score || 0,
       article.digest_date,
+      article.delivered || 0,
     );
+  }
+
+  getPendingHighSignal(threshold: number, hours: number = 24): Article[] {
+    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+    return this.db
+      .prepare(
+        `
+      SELECT * FROM articles 
+      WHERE score >= ? 
+      AND delivered = 0 
+      AND summary IS NOT NULL
+      AND (published_at > ? OR digest_date > ?)
+    `,
+      )
+      .all(threshold, cutoff, cutoff.split('T')[0]) as Article[];
+  }
+
+  markAsDelivered(articleIds: string[]) {
+    const stmt = this.db.prepare('UPDATE articles SET delivered = 1 WHERE id = ?');
+    const transaction = this.db.transaction((ids: string[]) => {
+      for (const id of ids) stmt.run(id);
+    });
+    transaction(articleIds);
   }
 
   getLatestTimestamp(): string | null {

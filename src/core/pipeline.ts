@@ -51,80 +51,100 @@ export class Pipeline {
       return true;
     });
 
-    if (activeSources.length === 0) {
-      console.log('[Pipeline] All sources are cooled down. Nothing to scrape.');
-      return [];
+    let enrichedItems: any[] = [];
+    const digestDate = new Date().toISOString().split('T')[0];
+    let newItemsCount = 0;
+
+    if (activeSources.length > 0) {
+      console.log(`[Pipeline] Scraping ${activeSources.length} sources...`);
+      const results = await this.orchestrator.runAll(activeSources);
+
+      // Record health
+      for (const res of results) {
+        this.healthStore.record({
+          source: res.source,
+          status: res.status,
+          items_found: res.items.length,
+          error_message: res.error,
+        });
+      }
+
+      const allArticles = results.flatMap((r) => r.items);
+      console.log(`[Pipeline] Found ${allArticles.length} raw items.`);
+
+      // Filtering
+      const latestTimestamp = this.articleStore.getLatestTimestamp();
+      let newItems = allArticles;
+
+      if (latestTimestamp) {
+        const lastTime = new Date(latestTimestamp).getTime();
+        newItems = allArticles.filter((a) => {
+          if (!a.published_at) return true;
+          return new Date(a.published_at).getTime() > lastTime;
+        });
+      }
+      newItemsCount = newItems.length;
+      console.log(`[Pipeline] ${newItemsCount} new items after incremental filter.`);
+
+      // Scoring & Deduplication
+      const unique = this.deduplicator.process(newItems);
+      const highSignal = unique
+        .map((a) => ({ ...a, score: this.scorer.score(a) }))
+        .filter((a) => a.score >= this.config.preferences.signalThreshold)
+        .sort((a, b) => b.score - a.score);
+
+      console.log(`[Pipeline] ${highSignal.length} high-signal items selected.`);
+
+      if (highSignal.length > 0) {
+        // LLM Analysis
+        console.log('[Pipeline] Analyzing high-signal items with LLM...');
+        const analysisResults = await this.llm.analyze(
+          highSignal.map((a) => ({ title: a.title, content: a.content })),
+        );
+
+        enrichedItems = highSignal.map((article, idx) => ({
+          ...article,
+          summary: analysisResults[idx]?.summary || null,
+          category: analysisResults[idx]?.category || 'Uncategorized',
+        }));
+
+        // Persistence
+        for (const item of enrichedItems) {
+          this.articleStore.upsert({
+            ...item,
+            digest_date: digestDate,
+            delivered: 0,
+          } as any);
+        }
+      } else {
+        console.log('[Pipeline] No high-signal items in this batch.');
+      }
+    } else {
+      console.log('[Pipeline] All sources are cooled down. Checking database for pending items...');
     }
 
-    console.log(`[Pipeline] Scraping ${activeSources.length} sources...`);
-    const results = await this.orchestrator.runAll(activeSources);
+    // 5. Build Final Digest (Current + Pending from last 24h)
+    const pendingItems = this.articleStore.getPendingHighSignal(
+      this.config.preferences.signalThreshold,
+      24,
+    );
 
-    // Record health
-    for (const res of results) {
-      this.healthStore.record({
-        source: res.source,
-        status: res.status,
-        items_found: res.items.length,
-        error_message: res.error,
-      });
-    }
+    // Merge and deduplicate by ID (latest run wins)
+    const allToDeliverMap = new Map();
+    for (const item of pendingItems) allToDeliverMap.set(item.id, item);
+    for (const item of enrichedItems) allToDeliverMap.set(item.id, item);
 
-    const allArticles = results.flatMap((r) => r.items);
-    console.log(`[Pipeline] Found ${allArticles.length} raw items.`);
+    const finalItemsToDeliver = Array.from(allToDeliverMap.values());
 
-    // Filtering
-    const latestTimestamp = this.articleStore.getLatestTimestamp();
-    let newItems = allArticles;
-
-    if (latestTimestamp) {
-      const lastTime = new Date(latestTimestamp).getTime();
-      newItems = allArticles.filter((a) => {
-        if (!a.published_at) return true;
-        return new Date(a.published_at).getTime() > lastTime;
-      });
-    }
-
-    console.log(`[Pipeline] ${newItems.length} new items after incremental filter.`);
-
-    // Scoring & Deduplication
-    const unique = this.deduplicator.process(newItems);
-    const highSignal = unique
-      .map((a) => ({ ...a, score: this.scorer.score(a) }))
-      .filter((a) => a.score >= this.config.preferences.signalThreshold)
-      .sort((a, b) => b.score - a.score);
-
-    console.log(`[Pipeline] ${highSignal.length} high-signal items selected.`);
-
-    if (highSignal.length === 0) {
-      console.log('[Pipeline] No high-signal items found today.');
+    if (finalItemsToDeliver.length === 0) {
+      console.log('[Pipeline] No high-signal items to deliver.');
       console.log('[Pipeline] Execution complete! 🥂');
       return [];
     }
 
-    // LLM Analysis
-    console.log('[Pipeline] Analyzing high-signal items with LLM...');
-    const analysisResults = await this.llm.analyze(
-      highSignal.map((a) => ({ title: a.title, content: a.content })),
-    );
-
-    const enrichedItems = highSignal.map((article, idx) => ({
-      ...article,
-      summary: analysisResults[idx]?.summary || null,
-      category: analysisResults[idx]?.category || 'Uncategorized',
-    }));
-
-    // Persistence
-    const digestDate = new Date().toISOString().split('T')[0];
-    for (const item of enrichedItems) {
-      this.articleStore.upsert({
-        ...item,
-        digest_date: digestDate,
-      } as any); // still using any here because Article requires some DB-specific fields
-    }
-
     // Delivery
     const digest: Digest = {
-      items: enrichedItems.map((item) => ({
+      items: finalItemsToDeliver.map((item) => ({
         title: item.title,
         url: item.url,
         summary: item.summary,
@@ -133,16 +153,21 @@ export class Pipeline {
         score: item.score,
       })),
       metadata: {
-        total_new_items: newItems.length,
-        total_selected: enrichedItems.length,
+        total_new_items: newItemsCount,
+        total_selected: finalItemsToDeliver.length,
         date: digestDate,
       },
     };
 
-    console.log(`[Pipeline] Delivering to ${this.delivery.length} channels...`);
+    console.log(
+      `[Pipeline] Delivering ${finalItemsToDeliver.length} items to ${this.delivery.length} channels...`,
+    );
     await Promise.all(this.delivery.map((d) => d.send(digest)));
 
+    // Mark as delivered
+    this.articleStore.markAsDelivered(finalItemsToDeliver.map((a) => a.id));
+
     console.log('[Pipeline] Execution complete! 🥂');
-    return enrichedItems;
+    return finalItemsToDeliver;
   }
 }
