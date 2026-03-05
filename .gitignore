@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build output
+dist/
+
+# Local configuration & Database
+*.db
+*.db-journal
+config.json
+feeds.json
+.env
+.env.*
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs and Tools
+.vscode/
+.idea/
+.agents/
+_reference/
+
+# Testing
+coverage/
+.vitest-result/

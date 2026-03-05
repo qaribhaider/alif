@@ -1,0 +1,650 @@
+[
+  {
+    "id": "hn",
+    "name": "Hacker News",
+    "type": "api",
+    "url": "https://hn.algolia.com/api/v1/search?tags=front_page",
+    "tier": 1,
+    "tags": ["social", "tech"]
+  },
+  {
+    "id": "github_trending",
+    "name": "GitHub Trending",
+    "type": "scrape",
+    "url": "https://github.com/trending",
+    "tier": 1,
+    "tags": ["code", "trending"]
+  },
+  {
+    "id": "arxiv_ai",
+    "name": "arXiv AI",
+    "type": "api",
+    "url": "http://export.arxiv.org/api/query?search_query=cat:cs.AI&sortBy=submittedDate&sortOrder=descending",
+    "tier": 1,
+    "tags": ["research", "papers"]
+  },
+  {
+    "id": "arxiv_lg",
+    "name": "arXiv Machine Learning (cs.LG)",
+    "type": "rss",
+    "url": "https://arxiv.org/rss/cs.LG",
+    "tier": 1,
+    "tags": ["research", "ml"]
+  },
+  {
+    "id": "arxiv_stat_ml",
+    "name": "arXiv Statistics ML (stat.ML)",
+    "type": "rss",
+    "url": "https://arxiv.org/rss/stat.ML",
+    "tier": 1,
+    "tags": ["research", "stats"]
+  },
+  {
+    "id": "reddit_ml",
+    "name": "Reddit MachineLearning",
+    "type": "json",
+    "url": "https://old.reddit.com/r/MachineLearning/.json",
+    "tier": 1,
+    "tags": ["social", "ml"]
+  },
+  {
+    "id": "reddit_datascience",
+    "name": "Reddit Data Science",
+    "type": "json",
+    "url": "https://www.reddit.com/r/datascience.json?limit=50",
+    "tier": 1,
+    "tags": ["social", "data-science"]
+  },
+  {
+    "id": "product_hunt",
+    "name": "Product Hunt",
+    "type": "rss",
+    "url": "https://www.producthunt.com/feed",
+    "tier": 1,
+    "tags": ["launch", "tools"]
+  },
+  {
+    "id": "openai",
+    "name": "OpenAI Blog",
+    "type": "rss",
+    "url": "https://openai.com/blog/rss.xml",
+    "tier": 2,
+    "tags": ["lab", "official"]
+  },
+  {
+    "id": "google_ai",
+    "name": "Google AI Blog",
+    "type": "rss",
+    "url": "https://blog.google/technology/ai/rss/",
+    "tier": 2,
+    "tags": ["lab", "research"]
+  },
+  {
+    "id": "google_gemini",
+    "name": "Google Gemini Blog",
+    "type": "rss",
+    "url": "https://blog.google/products/gemini/rss/",
+    "tier": 2,
+    "tags": ["lab", "product"]
+  },
+  {
+    "id": "meta_ai",
+    "name": "Meta AI Blog",
+    "type": "rss",
+    "url": "https://ai.meta.com/blog/rss.xml",
+    "tier": 2,
+    "tags": ["lab", "open-source"]
+  },
+  {
+    "id": "nvidia",
+    "name": "NVIDIA AI Blog",
+    "type": "rss",
+    "url": "https://blogs.nvidia.com/feed/",
+    "tier": 2,
+    "tags": ["hardware", "official"]
+  },
+  {
+    "id": "nvidia_dev",
+    "name": "NVIDIA Technical Blog",
+    "type": "rss",
+    "url": "https://developer.nvidia.com/blog/feed",
+    "tier": 2,
+    "tags": ["hardware", "technical"]
+  },
+  {
+    "id": "huggingface",
+    "name": "Hugging Face Blog",
+    "type": "rss",
+    "url": "https://huggingface.co/blog/feed.xml",
+    "tier": 2,
+    "tags": ["lab", "community"]
+  },
+  {
+    "id": "deepmind",
+    "name": "DeepMind Blog",
+    "type": "rss",
+    "url": "https://deepmind.com/blog/feed/basic/",
+    "tier": 2,
+    "tags": ["lab", "research"]
+  },
+  {
+    "id": "microsoft_research",
+    "name": "Microsoft Research",
+    "type": "rss",
+    "url": "https://www.microsoft.com/en-us/research/feed/",
+    "tier": 2,
+    "tags": ["lab", "research"]
+  },
+  {
+    "id": "amazon_science",
+    "name": "Amazon Science",
+    "type": "rss",
+    "url": "https://www.amazon.science/index.rss",
+    "tier": 2,
+    "tags": ["lab", "research"]
+  },
+  {
+    "id": "aws_ml",
+    "name": "AWS Machine Learning Blog",
+    "type": "rss",
+    "url": "https://aws.amazon.com/blogs/machine-learning/feed",
+    "tier": 2,
+    "tags": ["cloud", "ml"]
+  },
+  {
+    "id": "bair_blog",
+    "name": "BAIR Blog",
+    "type": "rss",
+    "url": "https://bair.berkeley.edu/blog/feed.xml",
+    "tier": 2,
+    "tags": ["academic", "research"]
+  },
+  {
+    "id": "cmu_ml",
+    "name": "CMU ML Blog",
+    "type": "rss",
+    "url": "https://blog.ml.cmu.edu/feed",
+    "tier": 2,
+    "tags": ["academic", "ml"]
+  },
+  {
+    "id": "stanford_ai",
+    "name": "Stanford AI Lab Blog",
+    "type": "rss",
+    "url": "http://ai.stanford.edu/blog/feed.xml",
+    "tier": 2,
+    "tags": ["academic", "ai"]
+  },
+  {
+    "id": "mit_ml",
+    "name": "MIT News (Machine Learning)",
+    "type": "rss",
+    "url": "https://news.mit.edu/topic/mitmachine-learning-rss.xml",
+    "tier": 2,
+    "tags": ["academic", "research"]
+  },
+  {
+    "id": "assembly_ai",
+    "name": "AssemblyAI Blog",
+    "type": "rss",
+    "url": "https://www.assemblyai.com/blog/rss/",
+    "tier": 2,
+    "tags": ["tools", "audio"]
+  },
+  {
+    "id": "dagshub",
+    "name": "DagsHub Blog",
+    "type": "rss",
+    "url": "https://dagshub.com/blog/rss/",
+    "tier": 2,
+    "tags": ["tools", "data-ops"]
+  },
+  {
+    "id": "paperspace",
+    "name": "Paperspace Blog",
+    "type": "rss",
+    "url": "https://blog.paperspace.com/rss/",
+    "tier": 2,
+    "tags": ["tools", "gpu"]
+  },
+  {
+    "id": "replicate",
+    "name": "Replicate Blog",
+    "type": "rss",
+    "url": "https://replicate.com/blog/rss",
+    "tier": 3,
+    "tags": ["infra", "inference"]
+  },
+  {
+    "id": "kilocode",
+    "name": "Kilo Code Blog",
+    "type": "rss",
+    "url": "https://kilocode.substack.com/feed",
+    "tier": 2,
+    "tags": ["tools", "assistant"]
+  },
+  {
+    "id": "aider",
+    "name": "Aider Blog",
+    "type": "rss",
+    "url": "https://aider.chat/feed.xml",
+    "tier": 2,
+    "tags": ["agent", "cli"]
+  },
+  {
+    "id": "langchain",
+    "name": "LangChain Blog",
+    "type": "rss",
+    "url": "https://blog.langchain.dev/rss/",
+    "tier": 2,
+    "tags": ["infra", "orchestration"]
+  },
+  {
+    "id": "vercel",
+    "name": "Vercel Blog",
+    "type": "rss",
+    "url": "https://vercel.com/atom",
+    "tier": 2,
+    "tags": ["infra", "v0"]
+  },
+  {
+    "id": "ai_accelerator",
+    "name": "AI Accelerator Institute",
+    "type": "rss",
+    "url": "https://aiacceleratorinstitute.com/rss/",
+    "tier": 2,
+    "tags": ["institute", "business"]
+  },
+  {
+    "id": "ai_techpark",
+    "name": "AI-TechPark",
+    "type": "rss",
+    "url": "https://ai-techpark.com/feed",
+    "tier": 2,
+    "tags": ["news", "tech"]
+  },
+  {
+    "id": "ai_weirdness",
+    "name": "AI Weirdness",
+    "type": "rss",
+    "url": "https://www.aiweirdness.com/rss/",
+    "tier": 3,
+    "tags": ["leader", "creative"]
+  },
+  {
+    "id": "analytics_india",
+    "name": "Analytics India Magazine",
+    "type": "rss",
+    "url": "https://analyticsindiamag.com/feed/",
+    "tier": 2,
+    "tags": ["news", "india"]
+  },
+  {
+    "id": "dev_community",
+    "name": "DEV Community",
+    "type": "rss",
+    "url": "https://dev.to/feed",
+    "tier": 1,
+    "tags": ["community", "coding"]
+  },
+  {
+    "id": "distill",
+    "name": "Distill",
+    "type": "rss",
+    "url": "https://distill.pub/rss.xml",
+    "tier": 2,
+    "tags": ["research", "visual"]
+  },
+  {
+    "id": "fast_ai",
+    "name": "fast.ai",
+    "type": "rss",
+    "url": "https://www.fast.ai/index.xml",
+    "tier": 2,
+    "tags": ["academic", "practical"]
+  },
+  {
+    "id": "hacker_noon_ai",
+    "name": "Hacker Noon (AI-Tag)",
+    "type": "rss",
+    "url": "https://hackernoon.com/tagged/ai/feed",
+    "tier": 1,
+    "tags": ["community", "tech"]
+  },
+  {
+    "id": "ieee_spectrum",
+    "name": "IEEE Spectrum (AI)",
+    "type": "rss",
+    "url": "https://spectrum.ieee.org/feeds/topic/artificial-intelligence.rss",
+    "tier": 2,
+    "tags": ["news", "engineering"]
+  },
+  {
+    "id": "jmlr",
+    "name": "JMLR",
+    "type": "rss",
+    "url": "https://www.jmlr.org/jmlr.xml",
+    "tier": 2,
+    "tags": ["research", "academic"]
+  },
+  {
+    "id": "kdnuggets",
+    "name": "KDnuggets",
+    "type": "rss",
+    "url": "https://www.kdnuggets.com/feed",
+    "tier": 2,
+    "tags": ["news", "data-science"]
+  },
+  {
+    "id": "ml_mastery",
+    "name": "Machine Learning Mastery",
+    "type": "rss",
+    "url": "https://machinelearningmastery.com/blog/feed",
+    "tier": 3,
+    "tags": ["education", "ml"]
+  },
+  {
+    "id": "marktechpost",
+    "name": "MarkTechPost",
+    "type": "rss",
+    "url": "https://www.marktechpost.com/feed",
+    "tier": 2,
+    "tags": ["news", "ml"]
+  },
+  {
+    "id": "pyimagesearch",
+    "name": "PyImageSearch",
+    "type": "rss",
+    "url": "https://pyimagesearch.com/blog/feed",
+    "tier": 3,
+    "tags": ["cv", "technical"]
+  },
+  {
+    "id": "sciencedaily",
+    "name": "ScienceDaily (AI)",
+    "type": "rss",
+    "url": "https://www.sciencedaily.com/rss/computers_math/artificial_intelligence.xml",
+    "tier": 2,
+    "tags": ["research", "news"]
+  },
+  {
+    "id": "the_gradient",
+    "name": "The Gradient",
+    "type": "rss",
+    "url": "https://thegradient.pub/rss/",
+    "tier": 2,
+    "tags": ["research", "thought-leadership"]
+  },
+  {
+    "id": "towards_ai",
+    "name": "Towards AI",
+    "type": "rss",
+    "url": "https://pub.towardsai.net/feed",
+    "tier": 2,
+    "tags": ["community", "ml"]
+  },
+  {
+    "id": "towards_datascience",
+    "name": "Towards Data Science",
+    "type": "rss",
+    "url": "https://towardsdatascience.com/feed",
+    "tier": 2,
+    "tags": ["community", "data-science"]
+  },
+  {
+    "id": "uber_ai",
+    "name": "Uber Engineering Blog (AI)",
+    "type": "rss",
+    "url": "https://eng.uber.com/category/articles/ai/feed",
+    "tier": 2,
+    "tags": ["eng", "ml"]
+  },
+  {
+    "id": "steipete",
+    "name": "Peter Steinberger",
+    "type": "rss",
+    "url": "https://steipete.me/rss.xml",
+    "tier": 3,
+    "tags": ["leader", "agentic"]
+  },
+  {
+    "id": "simonw",
+    "name": "Simon Willison",
+    "type": "rss",
+    "url": "https://simonwillison.net/atom/everything/",
+    "tier": 3,
+    "tags": ["leader", "practical"]
+  },
+  {
+    "id": "lilianweng",
+    "name": "Lilian Weng (Lil Log)",
+    "type": "rss",
+    "url": "https://lilianweng.github.io/index.xml",
+    "tier": 3,
+    "tags": ["leader", "research"]
+  },
+  {
+    "id": "chip_huyen",
+    "name": "Chip Huyen",
+    "type": "rss",
+    "url": "https://huyenchip.com/feed.xml",
+    "tier": 3,
+    "tags": ["leader", "mlops"]
+  },
+  {
+    "id": "thorsten_ball",
+    "name": "Thorsten Ball",
+    "type": "rss",
+    "url": "https://registerspill.thorstenball.com/feed",
+    "tier": 3,
+    "tags": ["leader", "coding"]
+  },
+  {
+    "id": "swyx",
+    "name": "Swyx (Latent Space)",
+    "type": "rss",
+    "url": "https://www.latent.space/feed",
+    "tier": 3,
+    "tags": ["leader", "culture"]
+  },
+  {
+    "id": "techcrunch_ai",
+    "name": "TechCrunch AI",
+    "type": "rss",
+    "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+    "tier": 2,
+    "tags": ["news"]
+  },
+  {
+    "id": "verge_ai",
+    "name": "The Verge AI",
+    "type": "rss",
+    "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
+    "tier": 2,
+    "tags": ["news"]
+  },
+  {
+    "id": "venturebeat_ai",
+    "name": "VentureBeat AI",
+    "type": "rss",
+    "url": "https://venturebeat.com/category/ai/feed/",
+    "tier": 2,
+    "tags": ["news"]
+  },
+  {
+    "id": "mit_tech",
+    "name": "MIT Technology Review",
+    "type": "rss",
+    "url": "https://www.technologyreview.com/feed/",
+    "tier": 2,
+    "tags": ["news", "policy"]
+  },
+  {
+    "id": "import_ai",
+    "name": "Import AI (Jack Clark)",
+    "type": "rss",
+    "url": "https://importai.substack.com/feed",
+    "tier": 3,
+    "tags": ["newsletter", "policy"]
+  },
+  {
+    "id": "elite_ai",
+    "name": "Elite AI Assisted Coding",
+    "type": "rss",
+    "url": "https://elite-ai-assisted-coding.substack.com/feed",
+    "tier": 3,
+    "tags": ["newsletter", "coding"]
+  },
+  {
+    "id": "wandb",
+    "name": "Weights & Biases",
+    "type": "rss",
+    "url": "https://wandb.ai/fully-connected/rss.xml",
+    "tier": 3,
+    "tags": ["mlops", "infra"]
+  },
+  {
+    "id": "podcast_future_work",
+    "name": "AI and the Future of Work",
+    "type": "rss",
+    "url": "https://feeds.buzzsprout.com/520474.rss",
+    "tier": 4,
+    "tags": ["podcast", "business"]
+  },
+  {
+    "id": "podcast_data_eng",
+    "name": "Data Engineering Podcast",
+    "type": "rss",
+    "url": "https://www.dataengineeringpodcast.com/feed/mp3/",
+    "tier": 4,
+    "tags": ["podcast", "eng"]
+  },
+  {
+    "id": "podcast_data_skeptic",
+    "name": "Data Skeptic",
+    "type": "rss",
+    "url": "https://dataskeptic.libsyn.com/rss",
+    "tier": 4,
+    "tags": ["podcast", "critical"]
+  },
+  {
+    "id": "podcast_datatalks",
+    "name": "DataTalks.Club",
+    "type": "rss",
+    "url": "https://anchor.fm/s/41286f68/podcast/rss",
+    "tier": 4,
+    "tags": ["podcast", "community"]
+  },
+  {
+    "id": "podcast_gradient_dissent",
+    "name": "Gradient Dissent",
+    "type": "rss",
+    "url": "https://feeds.captivate.fm/gradient-dissent/",
+    "tier": 4,
+    "tags": ["podcast", "wandb"]
+  },
+  {
+    "id": "podcast_intel_ai",
+    "name": "Intel on AI",
+    "type": "rss",
+    "url": "http://feeds.libsyn.com/363776/rss",
+    "tier": 4,
+    "tags": ["podcast", "hardware"]
+  },
+  {
+    "id": "podcast_nlp_highlights",
+    "name": "NLP Highlights",
+    "type": "rss",
+    "url": "http://feeds.soundcloud.com/users/soundcloud:users:306749289/sounds.rss",
+    "tier": 4,
+    "tags": ["podcast", "research"]
+  },
+  {
+    "id": "podcast_oreilly_data",
+    "name": "O'Reilly Data Show Podcast",
+    "type": "rss",
+    "url": "http://feeds.podtrac.com/IOJSwQcdEBcg",
+    "tier": 4,
+    "tags": ["podcast", "data"]
+  },
+  {
+    "id": "podcast_practical_ai",
+    "name": "Practical AI",
+    "type": "rss",
+    "url": "https://changelog.com/practicalai/feed",
+    "tier": 4,
+    "tags": ["podcast", "practical"]
+  },
+  {
+    "id": "podcast_ai_business",
+    "name": "The AI in Business Podcast",
+    "type": "rss",
+    "url": "http://podcast.emerj.com/rss",
+    "tier": 4,
+    "tags": ["podcast", "business"]
+  },
+  {
+    "id": "podcast_twiml",
+    "name": "The TWIML AI Podcast",
+    "type": "rss",
+    "url": "https://twimlai.com/feed",
+    "tier": 4,
+    "tags": ["podcast", "technical"]
+  },
+  {
+    "id": "yt_assembly_ai",
+    "name": "YouTube - AssemblyAI",
+    "type": "rss",
+    "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCtatfZMf-8EkIwASXM4ts0A",
+    "tier": 4,
+    "tags": ["video", "tools"]
+  },
+  {
+    "id": "yt_deepmind",
+    "name": "YouTube - DeepMind",
+    "type": "rss",
+    "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCP7jMXSY2xbc3KCAE0MHQ-A",
+    "tier": 4,
+    "tags": ["video", "research"]
+  },
+  {
+    "id": "yt_nvidia",
+    "name": "YouTube - NVIDIA",
+    "type": "rss",
+    "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCHuiy8bXnmK5nisYHUd1J5g",
+    "tier": 4,
+    "tags": ["video", "hardware"]
+  },
+  {
+    "id": "yt_tensorflow",
+    "name": "YouTube - TensorFlow",
+    "type": "rss",
+    "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC0rqucBdTuFTjJiefW5t-IQ",
+    "tier": 4,
+    "tags": ["video", "framework"]
+  },
+  {
+    "id": "yt_towards_datascience",
+    "name": "YouTube - Towards Data Science",
+    "type": "rss",
+    "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCuHZ1UYfHRqk3-5N5oc97Kw",
+    "tier": 4,
+    "tags": ["video", "community"]
+  },
+  {
+    "id": "yt_two_minute_papers",
+    "name": "YouTube - Two Minute Papers",
+    "type": "rss",
+    "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCbfYPyITQ-7l4upoX8nvctg",
+    "tier": 4,
+    "tags": ["video", "research"]
+  },
+  {
+    "id": "yt_yannic_kilcher",
+    "name": "YouTube - Yannic Kilcher",
+    "type": "rss",
+    "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCZHmQk67mSJgfCCTn7xBfew",
+    "tier": 4,
+    "tags": ["video", "research"]
+  }
+]
