@@ -1,7 +1,7 @@
 {
   "name": "alif",
   "version": "1.0.0",
-  "description": "",
+  "description": "Autonomous AI Signal Digest CLI for tracking high-signal AI breakthroughs.",
   "type": "module",
   "bin": {
     "alif": "./dist/cli/index.js"
@@ -15,9 +15,18 @@
     "format": "prettier --write .",
     "dev": "tsx src/cli/index.ts"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "ai",
+    "cli",
+    "digest",
+    "newsletter",
+    "automation",
+    "ollama",
+    "anthropic",
+    "signal"
+  ],
+  "author": "qaribhaider",
+  "license": "MIT",
   "dependencies": {
     "axios": "^1.13.6",
     "better-sqlite3": "^12.6.2",

@@ -33,7 +33,14 @@ ${articles.map((a, idx) => `${idx + 1}. TITLE: ${a.title}\nCONTENT: ${a.content 
     try {
       const response = await this.client.chat.completions.create({
         model: this.options.model,
-        messages: [{ role: 'user', content: prompt }],
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are an AI signal analyst. Provide direct, objective summaries and categories. Do NOT include any reasoning, thinking process, or <think> tags. Return valid JSON only.',
+          },
+          { role: 'user', content: prompt },
+        ],
         response_format: { type: 'json_object' },
       });
 

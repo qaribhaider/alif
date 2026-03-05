@@ -34,6 +34,9 @@ const MIGRATIONS = [
     last_run TEXT
   );
   `,
+  `
+  ALTER TABLE schedules ADD COLUMN scheduled_time TEXT;
+  `,
 ];
 
 export function runMigrations(db: Database) {

@@ -4,6 +4,25 @@ import { createDatabase } from '../../db/connection.js';
 import { runMigrations } from '../../db/migrate.js';
 import { Pipeline } from '../../core/pipeline.js';
 
+export async function runPipeline(config: any, db: any) {
+  const pipeline = new Pipeline(config, db);
+
+  // Load feeds
+  if (!fs.existsSync(config.feedsPath)) {
+    console.log(
+      `[Alif] Feeds file not found at ${config.feedsPath}. Initializing with default sources...`,
+    );
+    const { defaultFeeds } = await import('../../resources/index.js');
+    fs.writeFileSync(config.feedsPath, JSON.stringify(defaultFeeds, null, 2));
+    console.log(
+      `[Alif] Created default feeds.json at ${config.feedsPath} with ${defaultFeeds.length} sources.`,
+    );
+  }
+
+  const feeds = JSON.parse(fs.readFileSync(config.feedsPath, 'utf-8'));
+  await pipeline.run(feeds);
+}
+
 export async function runCommand() {
   const configManager = ConfigManager.getInstance();
 
@@ -17,22 +36,7 @@ export async function runCommand() {
     const db = createDatabase(config.dbPath);
     runMigrations(db);
 
-    const pipeline = new Pipeline(config, db);
-
-    // Load feeds
-    if (!fs.existsSync(config.feedsPath)) {
-      console.log(
-        `[Alif] Feeds file not found at ${config.feedsPath}. Initializing with default sources...`,
-      );
-      const { defaultFeeds } = await import('../../resources/index.js');
-      fs.writeFileSync(config.feedsPath, JSON.stringify(defaultFeeds, null, 2));
-      console.log(
-        `[Alif] Created default feeds.json at ${config.feedsPath} with ${defaultFeeds.length} sources.`,
-      );
-    }
-
-    const feeds = JSON.parse(fs.readFileSync(config.feedsPath, 'utf-8'));
-    await pipeline.run(feeds);
+    await runPipeline(config, db);
   } catch (error) {
     if (error instanceof Error) {
       console.error(`Error: ${error.message}`);

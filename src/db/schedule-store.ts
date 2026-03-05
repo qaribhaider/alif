@@ -4,19 +4,27 @@ export interface Schedule {
   id: string;
   name: string;
   cron: string;
+  scheduled_time?: string | null; // HH:mm
   active: number;
   last_run?: string | null;
 }
 
 export class ScheduleStore {
-  constructor(private db: Database) {}
+  constructor(private db: Database) { }
 
   add(schedule: Schedule) {
     const stmt = this.db.prepare(`
-      INSERT INTO schedules (id, name, cron, active, last_run)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO schedules (id, name, cron, scheduled_time, active, last_run)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
-    stmt.run(schedule.id, schedule.name, schedule.cron, schedule.active, schedule.last_run || null);
+    stmt.run(
+      schedule.id,
+      schedule.name,
+      schedule.cron,
+      schedule.scheduled_time || null,
+      schedule.active,
+      schedule.last_run || null,
+    );
   }
 
   getAll(): Schedule[] {
