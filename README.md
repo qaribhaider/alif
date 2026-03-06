@@ -27,6 +27,9 @@ Initialize your environment. Alif will guide you through connecting an LLM (Loca
 alif init
 ```
 
+> [!NOTE]
+> It is recommended to use standard instruction-tuned models. Models with native "thinking" or "reasoning" (like DeepSeek R1) may produce outputs that interfere with the analysis pipeline.
+
 ### 3. Run
 
 Generate your daily digest. Alif will scrape all sources, filter the noise, analyze the breakthroughs, and deliver the results.
@@ -72,6 +75,7 @@ Alif ships with a set of default base keywords. If you want to change what Alif 
 ```json
 "preferences": {
   "signalThreshold": 60,
+  "sequentialAnalysis": true,
   "customKeywords": {
     "my-favorite-framework": 100,
     "topic-i-want-to-ignore": 0,
@@ -80,7 +84,9 @@ Alif ships with a set of default base keywords. If you want to change what Alif 
 }
 ```
 
-_Note: Your custom keywords will be merged with the base keywords. If you define a key that already exists, your weight will override the default._
+- **`signalThreshold`**: Minimum score (0-100) for an article to be considered "high-signal".
+- **`sequentialAnalysis`**: If `true`, Alif will analyze articles one-by-one. This is **highly recommended** for local models (like Ollama 2B/3B) that might struggle with batching multiple items in one prompt.
+- **`customKeywords`**: Your custom keywords will be merged with the base keywords. If you define a key that already exists, your weight will override the default.
 
 ### Project Structure
 
@@ -128,7 +134,7 @@ echo 'export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"' > ~/.config/husky/in
 
 ## 📢 Acknowledgements
 
-Special thanks to [Roland](https://github.com/rolandbrecht/), whose initial technical foundation helped turn this concept into a reality.
+Special thanks to [Roland](https://github.com/rolandbrecht/), whose initial technical foundation helped turn this concept into a reality and [Antigravity](https://antigravity.google/) for the help in building this project.
 
 ## 📄 License
 

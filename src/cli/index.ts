@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import { initCommand } from './commands/init.js';
 import { runCommand } from './commands/run.js';
 import { scheduleCommand } from './commands/schedule.js';
+import { debugCommand } from './commands/debug.js';
 
 const program = new Command();
 
@@ -30,5 +31,7 @@ program
   .action(async (action) => {
     await scheduleCommand(action);
   });
+
+program.addCommand(debugCommand);
 
 program.parse(process.argv);

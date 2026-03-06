@@ -1,9 +1,10 @@
 import OpenAI from 'openai';
-import { LLMProvider, AnalysisResult } from './index.js';
+import { LLMProvider, AnalysisResult, LLMDebugInfo } from './index.js';
 import { parseLLMJson } from './utils.js';
 
 export class OpenRouterProvider implements LLMProvider {
   private client: OpenAI;
+  private latestDebugInfo: LLMDebugInfo | null = null;
 
   constructor(private options: { apiKey: string; model: string }) {
     this.client = new OpenAI({
@@ -16,8 +17,16 @@ export class OpenRouterProvider implements LLMProvider {
     });
   }
 
-  async analyze(articles: { title: string; content?: string }[]): Promise<AnalysisResult[]> {
+  async analyze(
+    articles: { title: string; content?: string }[],
+    options?: { sequential?: boolean },
+  ): Promise<AnalysisResult[]> {
     if (articles.length === 0) return [];
+
+    if (options?.sequential) {
+      // For now, OpenRouter doesn't strictly need sequential for stability,
+      // but we satisfy the interface. We could implement it later if needed.
+    }
 
     const prompt = `
 Analyze the following AI-related news items. For each item, provide:
@@ -30,6 +39,7 @@ Items:
 ${articles.map((a, idx) => `${idx + 1}. TITLE: ${a.title}\nCONTENT: ${a.content || 'None'}`).join('\n\n')}
 `;
 
+    const startTime = Date.now();
     try {
       const response = await this.client.chat.completions.create({
         model: this.options.model,
@@ -37,7 +47,7 @@ ${articles.map((a, idx) => `${idx + 1}. TITLE: ${a.title}\nCONTENT: ${a.content 
           {
             role: 'system',
             content:
-              'You are an AI signal analyst. Provide direct, objective summaries and categories. Do NOT include any reasoning, thinking process, or <think> tags. Return valid JSON only.',
+              'You are an AI signal analyst. Provide direct, objective summaries and categories. Do NOT include any reasoning, thinking process, or <think> tags. Always return a raw JSON array of objects. No intro, no outro, no markdown backticks.',
           },
           { role: 'user', content: prompt },
         ],
@@ -45,12 +55,32 @@ ${articles.map((a, idx) => `${idx + 1}. TITLE: ${a.title}\nCONTENT: ${a.content 
       });
 
       const content = response.choices[0].message.content;
-      if (!content) throw new Error('Empty response from OpenRouter');
+      this.latestDebugInfo = {
+        prompt,
+        rawResponse: content || '<<< EMPTY >>>',
+        latencyMs: Date.now() - startTime,
+      };
 
+      if (!content) throw new Error('Empty response from OpenRouter');
       return parseLLMJson(content);
     } catch (error) {
-      console.error(`[OpenRouter] Error: ${error instanceof Error ? error.message : String(error)}`);
+      console.error(
+        `[OpenRouter] Error: ${error instanceof Error ? error.message : String(error)}`,
+      );
+
+      if (!this.latestDebugInfo) {
+        this.latestDebugInfo = {
+          prompt,
+          rawResponse: error instanceof Error ? error.message : String(error),
+          latencyMs: Date.now() - startTime,
+        };
+      }
+
       return articles.map(() => ({ summary: null, category: 'Uncategorized' }));
     }
+  }
+
+  getLatestDebugInfo(): LLMDebugInfo | null {
+    return this.latestDebugInfo;
   }
 }

@@ -42,6 +42,15 @@ export async function initCommand() {
       initial: 'http://localhost:11434',
     },
     {
+      type: 'toggle',
+      name: 'sequentialAnalysis',
+      message:
+        'Enable sequential (one-by-one) LLM processing? (Recommended for small local models)',
+      initial: (prev, values) => values.llmProvider === 'ollama',
+      active: 'yes',
+      inactive: 'no',
+    },
+    {
       type: 'multiselect',
       name: 'deliveryProviders',
       message: 'Where should we deliver the digest?',
@@ -53,7 +62,7 @@ export async function initCommand() {
     },
   ]);
 
-  if (!response.llmProvider) {
+  if (!response.llmProvider || !response.deliveryProviders) {
     console.log('Initialization cancelled.');
     return;
   }
@@ -80,6 +89,7 @@ export async function initCommand() {
       signalThreshold: 60,
       maxItemsPerCategory: 5,
       sourceCooldownMinutes: 5,
+      sequentialAnalysis: response.sequentialAnalysis,
       customKeywords: {},
     },
     dbPath: path.join(configDir, 'alif.db'),

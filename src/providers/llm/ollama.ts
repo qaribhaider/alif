@@ -1,44 +1,132 @@
-import axios from 'axios';
-import { LLMProvider, AnalysisResult } from './index.js';
+import { Ollama } from 'ollama';
+import { LLMProvider, AnalysisResult, LLMDebugInfo } from './index.js';
 import { parseLLMJson } from './utils.js';
 
 export class OllamaProvider implements LLMProvider {
-  constructor(private options: { baseUrl: string; model: string }) {}
+  private ollama: Ollama;
+  private latestDebugInfo: LLMDebugInfo | null = null;
 
-  async analyze(articles: { title: string; content?: string }[]): Promise<AnalysisResult[]> {
+  constructor(private options: { baseUrl: string; model: string }) {
+    this.ollama = new Ollama({ host: options.baseUrl });
+  }
+
+  async analyze(
+    articles: { title: string; content?: string }[],
+    options?: { sequential?: boolean },
+  ): Promise<AnalysisResult[]> {
     if (articles.length === 0) return [];
 
-    const prompt = `
-Analyze the following AI-related news items. For each item, provide:
-1. A concise, one-sentence summary (max 30 words).
-2. A category (e.g., "Model Release", "Research", "Tool/SDK", "Policy", "Industry News", "Tutorial").
+    if (options?.sequential) {
+      return this.analyzeSequential(articles);
+    }
 
-Return ONLY a JSON array of objects with keys "summary" and "category". Match the order of the input items.
+    return this.analyzeBatch(articles);
+  }
+
+  private async analyzeBatch(
+    articles: { title: string; content?: string }[],
+  ): Promise<AnalysisResult[]> {
+    const prompt = `
+Analyze these AI news items.
+For each, provide: "summary" (one sentence, max 20 words) and "category" (e.g. Model Release, Research, Tool/SDK, Policy).
+
+Return ONLY a raw JSON array of objects. No intro, no outro, no markdown backticks.
 
 Items:
-${articles.map((a, idx) => `${idx + 1}. TITLE: ${a.title}\nCONTENT: ${a.content || 'None'}`).join('\n\n')}
+${articles.map((a, idx) => `ID ${idx}: ${a.title}`).join('\n')}
 `;
 
+    const startTime = Date.now();
     try {
-      const response = await axios.post(`${this.options.baseUrl}/api/generate`, {
+      const response = await this.ollama.generate({
         model: this.options.model,
         system:
-          'You are an AI signal analyst. Provide direct, objective summaries and categories. Do NOT include any reasoning, thinking process, or <think> tags. Always return a JSON array of objects.',
+          'You are an AI signal analyst. Provide direct, objective summaries and categories. Always return a JSON array of objects.',
         prompt: prompt,
         stream: false,
         format: 'json',
-        options: {
-          stop: ['<think>', '</think>', 'Reasoning:'],
-        },
+        think: false,
       });
 
-      const ollamaData = response.data;
-      const finalResponse = ollamaData.response || ollamaData.thinking || '';
+      const latencyMs = Date.now() - startTime;
+      const finalResponse = response.response || '';
+
+      this.latestDebugInfo = {
+        prompt,
+        rawResponse: finalResponse,
+        latencyMs,
+      };
 
       return parseLLMJson(finalResponse);
     } catch (error) {
-      console.error(`[Ollama] Error: ${error instanceof Error ? error.message : String(error)}`);
-      return articles.map(() => ({ summary: null, category: 'Uncategorized' }));
+      this.handleError(error, prompt, startTime);
+      return this.getFallbackResults(articles);
     }
+  }
+
+  private async analyzeSequential(
+    articles: { title: string; content?: string }[],
+  ): Promise<AnalysisResult[]> {
+    const results: AnalysisResult[] = [];
+    let combinedRawResponse = '';
+    const startTime = Date.now();
+
+    for (const article of articles) {
+      const prompt = `Analyze this AI news item: "${article.title}". Provide a "summary" (one sentence) and a "category". Return JSON.`;
+
+      try {
+        const response = await this.ollama.generate({
+          model: this.options.model,
+          prompt,
+          format: 'json',
+          stream: false,
+          think: false,
+        });
+
+        const parsed = parseLLMJson(response.response);
+        results.push(parsed[0] || { summary: null, category: 'Uncategorized' });
+        combinedRawResponse += `\n--- Item ${results.length} ---\n${response.response}`;
+      } catch (error) {
+        console.error(`[Ollama] Sequential Error for "${article.title}":`, error);
+        results.push(this.getFallbackResults([article])[0]);
+      }
+    }
+
+    this.latestDebugInfo = {
+      prompt: 'Sequential Processing (Multiple Prompts)',
+      rawResponse: combinedRawResponse,
+      latencyMs: Date.now() - startTime,
+    };
+
+    return results;
+  }
+
+  private handleError(error: any, prompt: string, startTime: number) {
+    console.error(`[Ollama] Error: ${error instanceof Error ? error.message : String(error)}`);
+    this.latestDebugInfo = {
+      prompt,
+      rawResponse: error instanceof Error ? error.stack || error.message : String(error),
+      latencyMs: Date.now() - startTime,
+    };
+  }
+
+  private getFallbackResults(articles: { title: string; content?: string }[]): AnalysisResult[] {
+    return articles.map((a) => {
+      const title = a.title.toLowerCase();
+      let category = 'Uncategorized';
+      if (title.includes('research') || title.includes('paper')) category = 'Research';
+      else if (title.includes('release') || title.includes('version') || title.includes('new'))
+        category = 'Model Release';
+      else if (title.includes('tool') || title.includes('sdk') || title.includes('api'))
+        category = 'Tool/SDK';
+      else if (title.includes('policy') || title.includes('law') || title.includes('regulation'))
+        category = 'Policy';
+
+      return { summary: null, category };
+    });
+  }
+
+  getLatestDebugInfo(): LLMDebugInfo | null {
+    return this.latestDebugInfo;
   }
 }

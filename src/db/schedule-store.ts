@@ -10,7 +10,7 @@ export interface Schedule {
 }
 
 export class ScheduleStore {
-  constructor(private db: Database) { }
+  constructor(private db: Database) {}
 
   add(schedule: Schedule) {
     const stmt = this.db.prepare(`

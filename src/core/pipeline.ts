@@ -98,6 +98,7 @@ export class Pipeline {
         console.log('[Pipeline] Analyzing high-signal items with LLM...');
         const analysisResults = await this.llm.analyze(
           highSignal.map((a) => ({ title: a.title, content: a.content })),
+          { sequential: this.config.preferences.sequentialAnalysis },
         );
 
         enrichedItems = highSignal.map((article, idx) => ({

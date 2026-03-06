@@ -3,6 +3,16 @@ export interface AnalysisResult {
   category: string;
 }
 
+export interface LLMDebugInfo {
+  prompt: string;
+  rawResponse: string;
+  latencyMs: number;
+}
+
 export interface LLMProvider {
-  analyze(articles: { title: string; content?: string }[]): Promise<AnalysisResult[]>;
+  analyze(
+    articles: { title: string; content?: string }[],
+    options?: { sequential?: boolean },
+  ): Promise<AnalysisResult[]>;
+  getLatestDebugInfo?(): LLMDebugInfo | null;
 }
