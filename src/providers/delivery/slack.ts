@@ -50,6 +50,7 @@ export class SlackDelivery implements DeliveryProvider {
       console.error(
         `[Slack Delivery] Error: ${error instanceof Error ? error.message : String(error)}`,
       );
+      throw error;
     }
   }
 }

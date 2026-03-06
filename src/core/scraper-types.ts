@@ -15,6 +15,7 @@ export interface ScraperSource {
   url: string;
   tier?: number;
   tags?: string[];
+  selector?: string;
   mapping?: Record<string, string>;
 }
 

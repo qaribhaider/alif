@@ -13,7 +13,30 @@ export class ScrapeScraper extends BaseScraper {
       const $ = cheerio.load(response.data);
       const items: ScrapedArticle[] = [];
 
-      if (source.id === 'github_trending') {
+      if (source.mapping && source.selector) {
+        // Generic HTML scraping logic
+        $(source.selector).each((_, el) => {
+          const $el = $(el);
+          const title = source.mapping!.title ? $el.find(source.mapping!.title).text().trim() : '';
+          const rawUrl = source.mapping!.url ? $el.find(source.mapping!.url).attr('href') : '';
+          const url = rawUrl
+            ? rawUrl.startsWith('http')
+              ? rawUrl
+              : new URL(rawUrl, source.url).href
+            : source.url;
+          const content = source.mapping!.content
+            ? $el.find(source.mapping!.content).text().trim()
+            : '';
+
+          items.push({
+            id: url,
+            title: title || 'No Title',
+            url,
+            content,
+            source: source.id,
+          });
+        });
+      } else if (source.id === 'github_trending') {
         $('.Box-row').each((_, el) => {
           const $el = $(el);
           const title = $el.find('h2 a').text().trim().replace(/\s+/g, ' ');
@@ -33,7 +56,7 @@ export class ScrapeScraper extends BaseScraper {
           source: source.id,
           status: 'error',
           items: [],
-          error: 'Unsupported scraping source',
+          error: 'Unsupported scraping source or missing mapping',
         };
       }
 

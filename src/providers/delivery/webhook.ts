@@ -11,6 +11,7 @@ export class WebhookDelivery implements DeliveryProvider {
       console.error(
         `[Webhook Delivery] Error: ${error instanceof Error ? error.message : String(error)}`,
       );
+      throw error;
     }
   }
 }
