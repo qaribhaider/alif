@@ -27,21 +27,12 @@ Initialize your environment. Alif will guide you through connecting an LLM (Loca
 alif init
 ```
 
-> [!NOTE]
-> It is recommended to use standard instruction-tuned models. Models with native "thinking" or "reasoning" (like DeepSeek R1) may produce outputs that interfere with the analysis pipeline.
-
 ### 3. Run
 
 Generate your daily digest. Alif will scrape all sources, filter the noise, analyze the breakthroughs, and deliver the results.
 
 ```bash
 alif run
-```
-
-To bypass the source rate limiting (default 5m cooldown), use the force flag:
-
-```bash
-alif run --force
 ```
 
 ### 4. Schedule
@@ -52,6 +43,19 @@ Keep the signals flowing by checking for scheduled runs.
 alif schedule add
 alif schedule check
 ```
+
+---
+
+## 🤖 Models
+
+Use standard instruction-tuned models that support structured output. Avoid thinking/reasoning models.
+
+### Tested Models
+
+| Provider       | Model                |
+| -------------- | -------------------- |
+| **Ollama**     | `llama3.2:3b`        |
+| **OpenRouter** | `openai/gpt-4o-mini` |
 
 ---
 

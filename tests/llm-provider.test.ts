@@ -1,113 +1,71 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OllamaProvider } from '../src/providers/llm/ollama.js';
+import { AnthropicProvider } from '../src/providers/llm/anthropic.js';
+import { generateText, Output } from 'ai';
 
-vi.mock('ollama', () => {
-  return {
-    Ollama: class {
-      generate = vi.fn();
-    },
-  };
-});
+vi.mock('ai', () => ({
+  generateText: vi.fn(),
+  Output: {
+    object: vi.fn().mockReturnValue({}),
+  },
+}));
 
-describe('OllamaProvider', () => {
-  const options = { baseUrl: 'http://localhost:11434', model: 'test-model' };
-  let provider: OllamaProvider;
-  let mockOllamaInstance: any;
+vi.mock('ollama-ai-provider-v2', () => ({
+  createOllama: vi.fn().mockReturnValue(vi.fn()),
+}));
 
+vi.mock('@ai-sdk/anthropic', () => ({
+  createAnthropic: vi.fn().mockReturnValue(vi.fn()),
+}));
+
+describe('LLM Providers (AI SDK)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    provider = new OllamaProvider(options);
-    // @ts-expect-error - access private for testing
-    mockOllamaInstance = provider.ollama;
+    // Ensure Output.object mock is reset
+    vi.mocked(Output.object).mockReturnValue({} as any);
   });
 
-  it('should return empty array if no articles provided', async () => {
-    const result = await provider.analyze([]);
-    expect(result).toEqual([]);
-  });
+  describe('OllamaProvider', () => {
+    const provider = new OllamaProvider({ baseUrl: 'http://localhost:11434', model: 'test-model' });
 
-  it('should parse valid JSON response from Ollama', async () => {
-    mockOllamaInstance.generate.mockResolvedValue({
-      response: JSON.stringify([
-        { summary: 'AI reaches breakthrough.', category: 'Research' },
-        { summary: 'New model released.', category: 'Model Release' },
-      ]),
+    it('should parse valid response using generateText', async () => {
+      vi.mocked(generateText).mockResolvedValue({
+        output: {
+          signals: [{ summary: 'AI breakthrough.', category: 'Research' }],
+        },
+      } as any);
+
+      const result = await provider.analyze([{ title: 'Article 1' }]);
+      expect(result).toHaveLength(1);
+      expect(result[0].summary).toBe('AI breakthrough.');
+      expect(generateText).toHaveBeenCalled();
     });
 
-    const articles = [{ title: 'Article 1' }, { title: 'Article 2' }];
-    const result = await provider.analyze(articles);
+    it('should handle sequential processing', async () => {
+      vi.mocked(generateText).mockResolvedValue({
+        output: { summary: 'Seq 1', category: 'Research' },
+      } as any);
 
-    expect(result).toHaveLength(2);
-    expect(result[0]).toEqual({ summary: 'AI reaches breakthrough.', category: 'Research' });
-    expect(result[1]).toEqual({ summary: 'New model released.', category: 'Model Release' });
-  });
-
-  it('should handle single object response by wrapping in array', async () => {
-    mockOllamaInstance.generate.mockResolvedValue({
-      response: JSON.stringify({ summary: 'Single breakthrough.', category: 'Research' }),
-    });
-
-    const result = await provider.analyze([{ title: 'Article 1' }]);
-    expect(result).toHaveLength(1);
-    expect(result[0].summary).toBe('Single breakthrough.');
-  });
-
-  it('should return default objects on parse error', async () => {
-    mockOllamaInstance.generate.mockResolvedValue({
-      response: 'Invalid JSON',
-    });
-
-    const articles = [{ title: 'Article 1' }];
-    const result = await provider.analyze(articles);
-
-    expect(result).toHaveLength(1);
-    // Should fallback to keyword based categorization since parse failed
-    expect(result[0].category).toBe('Uncategorized');
-  });
-
-  it('should handle empty response from Ollama', async () => {
-    mockOllamaInstance.generate.mockResolvedValue({
-      response: '',
-    });
-
-    const result = await provider.analyze([{ title: 'Article 1' }]);
-    expect(result[0]).toEqual({ summary: null, category: 'Uncategorized' });
-  });
-
-  it('should handle markdown-wrapped JSON response', async () => {
-    mockOllamaInstance.generate.mockResolvedValue({
-      response:
-        'Here is the analysis:\n```json\n[{"summary": "Markdown works.", "category": "Test"}]\n```',
-    });
-
-    const result = await provider.analyze([{ title: 'Article 1' }]);
-    expect(result[0].summary).toBe('Markdown works.');
-  });
-
-  it('should handle text-wrapped JSON response', async () => {
-    mockOllamaInstance.generate.mockResolvedValue({
-      response: 'The result is: [{"summary": "Text wrapped.", "category": "Test"}] end of message.',
-    });
-
-    const result = await provider.analyze([{ title: 'Article 1' }]);
-    expect(result[0].summary).toBe('Text wrapped.');
-  });
-
-  it('should support sequential processing', async () => {
-    mockOllamaInstance.generate
-      .mockResolvedValueOnce({
-        response: JSON.stringify([{ summary: 'Seq 1', category: 'Research' }]),
-      })
-      .mockResolvedValueOnce({
-        response: JSON.stringify([{ summary: 'Seq 2', category: 'Tool/SDK' }]),
+      const result = await provider.analyze([{ title: 'A1' }, { title: 'A2' }], {
+        sequential: true,
       });
+      expect(result).toHaveLength(2);
+      expect(generateText).toHaveBeenCalledTimes(2);
+    });
+  });
 
-    const articles = [{ title: 'Article 1' }, { title: 'Article 2' }];
-    const result = await provider.analyze(articles, { sequential: true });
+  describe('AnthropicProvider', () => {
+    const provider = new AnthropicProvider({ apiKey: 'test-key', model: 'claude-3' });
 
-    expect(result).toHaveLength(2);
-    expect(result[0].summary).toBe('Seq 1');
-    expect(result[1].summary).toBe('Seq 2');
-    expect(mockOllamaInstance.generate).toHaveBeenCalledTimes(2);
+    it('should use generateText for analysis', async () => {
+      vi.mocked(generateText).mockResolvedValue({
+        output: {
+          signals: [{ summary: 'Anthropic result.', category: 'Model Release' }],
+        },
+      } as any);
+
+      const result = await provider.analyze([{ title: 'Article 1' }]);
+      expect(result[0].summary).toBe('Anthropic result.');
+    });
   });
 });

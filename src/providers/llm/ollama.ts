@@ -1,13 +1,22 @@
-import { Ollama } from 'ollama';
+import { createOllama } from 'ollama-ai-provider-v2';
+import { generateText, Output } from 'ai';
 import { LLMProvider, AnalysisResult, LLMDebugInfo } from './index.js';
-import { parseLLMJson } from './utils.js';
+import {
+  AnalysisSchema,
+  SingleArticleSchema,
+  SYSTEM_PROMPT,
+  getBatchPrompt,
+  getSinglePrompt,
+} from './common.js';
 
 export class OllamaProvider implements LLMProvider {
-  private ollama: Ollama;
+  private model: any;
   private latestDebugInfo: LLMDebugInfo | null = null;
 
   constructor(private options: { baseUrl: string; model: string }) {
-    this.ollama = new Ollama({ host: options.baseUrl });
+    // ollama-ai-provider-v2 expects the /api prefix (default: http://localhost:11434/api)
+    const ollama = createOllama({ baseURL: `${options.baseUrl}/api` });
+    this.model = ollama(options.model);
   }
 
   async analyze(
@@ -26,38 +35,26 @@ export class OllamaProvider implements LLMProvider {
   private async analyzeBatch(
     articles: { title: string; content?: string }[],
   ): Promise<AnalysisResult[]> {
-    const prompt = `
-Analyze these AI news items.
-For each, provide: "summary" (one sentence, max 20 words) and "category" (e.g. Model Release, Research, Tool/SDK, Policy).
-
-Return ONLY a raw JSON array of objects. No intro, no outro, no markdown backticks.
-
-Items:
-${articles.map((a, idx) => `ID ${idx}: ${a.title}`).join('\n')}
-`;
+    const prompt = getBatchPrompt(articles);
 
     const startTime = Date.now();
     try {
-      const response = await this.ollama.generate({
-        model: this.options.model,
-        system:
-          'You are an AI signal analyst. Provide direct, objective summaries and categories. Always return a JSON array of objects.',
-        prompt: prompt,
-        stream: false,
-        format: 'json',
-        think: false,
+      const { output } = await generateText({
+        model: this.model,
+        output: Output.object({ schema: AnalysisSchema }),
+        system: SYSTEM_PROMPT,
+        prompt,
+        providerOptions: { ollama: { think: false } },
       });
 
       const latencyMs = Date.now() - startTime;
-      const finalResponse = response.response || '';
-
       this.latestDebugInfo = {
         prompt,
-        rawResponse: finalResponse,
+        rawResponse: JSON.stringify(output),
         latencyMs,
       };
 
-      return parseLLMJson(finalResponse);
+      return output.signals;
     } catch (error) {
       this.handleError(error, prompt, startTime);
       return this.getFallbackResults(articles);
@@ -72,22 +69,36 @@ ${articles.map((a, idx) => `ID ${idx}: ${a.title}`).join('\n')}
     const startTime = Date.now();
 
     for (const article of articles) {
-      const prompt = `Analyze this AI news item: "${article.title}". Provide a "summary" (one sentence) and a "category". Return JSON.`;
+      const prompt = getSinglePrompt([article]);
 
       try {
-        const response = await this.ollama.generate({
-          model: this.options.model,
+        const { output } = await generateText({
+          model: this.model,
+          output: Output.object({ schema: SingleArticleSchema }),
           prompt,
-          format: 'json',
-          stream: false,
-          think: false,
+          providerOptions: { ollama: { think: false } },
         });
 
-        const parsed = parseLLMJson(response.response);
-        results.push(parsed[0] || { summary: null, category: 'Uncategorized' });
-        combinedRawResponse += `\n--- Item ${results.length} ---\n${response.response}`;
-      } catch (error) {
-        console.error(`[Ollama] Sequential Error for "${article.title}":`, error);
+        results.push(output);
+        combinedRawResponse += `\n--- Item ${results.length} ---\n${JSON.stringify(output)}`;
+      } catch (error: any) {
+        // Small models may ignore JSON schema and return markdown text instead.
+        // NoObjectGeneratedError includes the raw .text from the model, so we can recover.
+        const rawText: string | undefined = error?.text;
+        if (rawText) {
+          const summaryMatch = rawText.match(/\*{0,2}summary\*{0,2}:?\*{0,2}\s*(.+)/i);
+          const categoryMatch = rawText.match(/\*{0,2}category\*{0,2}:?\*{0,2}\s*(.+)/i);
+          if (summaryMatch || categoryMatch) {
+            const recovered: AnalysisResult = {
+              summary: summaryMatch?.[1]?.trim() ?? null,
+              category: categoryMatch?.[1]?.replace(/[.*]/g, '').trim() ?? 'Uncategorized',
+            };
+            results.push(recovered);
+            combinedRawResponse += `\n--- Item ${results.length} (recovered from text) ---\n${rawText}`;
+            continue;
+          }
+        }
+        console.error(`[Ollama] Sequential Error for "${article.title}":`, error?.message ?? error);
         results.push(this.getFallbackResults([article])[0]);
       }
     }
