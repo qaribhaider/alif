@@ -10,9 +10,12 @@ export interface Article {
   category?: string;
   published_at?: string;
   score?: number;
-  digest_date: string;
+  digest_date?: string;
   delivered?: number;
 }
+
+export type ScrapedArticle = Omit<Article, 'summary' | 'category' | 'digest_date' | 'delivered'>;
+export type AnalysedArticle = Article & { summary: string | null; category: string };
 
 export class ArticleStore {
   constructor(private db: Database) {}

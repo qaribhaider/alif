@@ -3,7 +3,7 @@ import { ScraperOrchestrator } from './orchestrator.js';
 import { ScraperSource } from './scraper-types.js';
 import { KeywordScorer } from './filters/keywords.js';
 import { Deduplicator } from './filters/deduplicator.js';
-import { ArticleStore } from '../db/article-store.js';
+import { ArticleStore, AnalysedArticle } from '../db/article-store.js';
 import { SourceHealthStore } from '../db/source-health-store.js';
 import { Database } from 'better-sqlite3';
 import { ProviderFactory } from '../providers/factory.js';
@@ -49,7 +49,7 @@ export class Pipeline {
       return true;
     });
 
-    let enrichedItems: any[] = [];
+    let enrichedItems: AnalysedArticle[] = [];
     const digestDate = new Date().toISOString().split('T')[0];
     let newItemsCount = 0;
 
@@ -114,7 +114,7 @@ export class Pipeline {
             ...item,
             digest_date: digestDate,
             delivered: 0,
-          } as any);
+          });
         }
       } else {
         console.log('[Pipeline] No high-signal items in this batch.');
