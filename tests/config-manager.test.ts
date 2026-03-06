@@ -20,7 +20,7 @@ describe('ConfigManager', () => {
     delivery: [{ type: 'slack', webhookUrl: 'https://hooks.slack.com/services/test' }],
     preferences: {
       signalThreshold: 60,
-      maxItemsPerCategory: 5,
+      maxItemsPerRun: 10,
       sourceCooldownMinutes: 5,
       sequentialAnalysis: false,
       customKeywords: {},

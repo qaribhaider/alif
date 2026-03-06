@@ -89,7 +89,8 @@ export class Pipeline {
       const highSignal = unique
         .map((a) => ({ ...a, score: this.scorer.score(a) }))
         .filter((a) => a.score >= this.config.preferences.signalThreshold)
-        .sort((a, b) => b.score - a.score);
+        .sort((a, b) => b.score - a.score)
+        .slice(0, this.config.preferences.maxItemsPerRun);
 
       console.log(`[Pipeline] ${highSignal.length} high-signal items selected.`);
 
