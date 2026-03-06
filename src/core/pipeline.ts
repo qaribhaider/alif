@@ -137,7 +137,7 @@ export class Pipeline {
 
     if (finalItemsToDeliver.length === 0) {
       console.log('[Pipeline] No high-signal items to deliver.');
-      console.log('[Pipeline] Execution complete! 🥂');
+      console.log('[Pipeline] Execution complete! 🚀');
       return [];
     }
 
@@ -166,7 +166,7 @@ export class Pipeline {
     // Mark as delivered
     this.articleStore.markAsDelivered(finalItemsToDeliver.map((a) => a.id));
 
-    console.log('[Pipeline] Execution complete! 🥂');
+    console.log('[Pipeline] Execution complete! 🚀');
     return finalItemsToDeliver;
   }
 }
