@@ -162,10 +162,25 @@ export class Pipeline {
     console.log(
       `[Pipeline] Delivering ${finalItemsToDeliver.length} items to ${this.delivery.length} channels...`,
     );
-    await Promise.all(this.delivery.map((d) => d.send(digest)));
 
-    // Mark as delivered
-    this.articleStore.markAsDelivered(finalItemsToDeliver.map((a) => a.id));
+    const deliveryResults = await Promise.allSettled(this.delivery.map((d) => d.send(digest)));
+
+    const successCount = deliveryResults.filter((r) => r.status === 'fulfilled').length;
+    const failCount = deliveryResults.filter((r) => r.status === 'rejected').length;
+
+    if (failCount > 0) {
+      console.error(`[Pipeline] ${failCount} delivery channel(s) failed.`);
+      deliveryResults.forEach((r, i) => {
+        if (r.status === 'rejected') {
+          console.error(`[Pipeline] Channel ${i + 1} error:`, r.reason?.message ?? r.reason);
+        }
+      });
+    }
+
+    // Only mark as delivered if at least one channel succeeded
+    if (successCount > 0) {
+      this.articleStore.markAsDelivered(finalItemsToDeliver.map((a) => a.id));
+    }
 
     console.log('[Pipeline] Execution complete! 🚀');
     return finalItemsToDeliver;
