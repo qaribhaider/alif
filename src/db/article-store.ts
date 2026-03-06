@@ -67,9 +67,10 @@ export class ArticleStore {
   }
 
   getLatestTimestamp(): string | null {
-    const result = this.db.prepare('SELECT MAX(published_at) as latest FROM articles').get() as {
-      latest: string | null;
-    };
+    // Use published_at where available, fall back to digest_date when feeds omit it
+    const result = this.db
+      .prepare('SELECT MAX(COALESCE(published_at, digest_date)) as latest FROM articles')
+      .get() as { latest: string | null };
     return result?.latest || null;
   }
 }
