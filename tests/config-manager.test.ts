@@ -22,6 +22,7 @@ describe('ConfigManager', () => {
       signalThreshold: 60,
       maxItemsPerCategory: 5,
       sourceCooldownMinutes: 5,
+      sequentialAnalysis: false,
       customKeywords: {},
     },
     dbPath: path.join(mockConfigDir, 'alif.db'),

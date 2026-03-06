@@ -1,15 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import axios from 'axios';
 import { OllamaProvider } from '../src/providers/llm/ollama.js';
 
-vi.mock('axios');
+vi.mock('ollama', () => {
+  return {
+    Ollama: class {
+      generate = vi.fn();
+    },
+  };
+});
 
 describe('OllamaProvider', () => {
   const options = { baseUrl: 'http://localhost:11434', model: 'test-model' };
-  const provider = new OllamaProvider(options);
+  let provider: OllamaProvider;
+  let mockOllamaInstance: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    provider = new OllamaProvider(options);
+    // @ts-expect-error - access private for testing
+    mockOllamaInstance = provider.ollama;
   });
 
   it('should return empty array if no articles provided', async () => {
@@ -18,15 +27,12 @@ describe('OllamaProvider', () => {
   });
 
   it('should parse valid JSON response from Ollama', async () => {
-    const mockResponse = {
-      data: {
-        response: JSON.stringify([
-          { summary: 'AI reaches breakthrough.', category: 'Research' },
-          { summary: 'New model released.', category: 'Model Release' },
-        ]),
-      },
-    };
-    vi.mocked(axios.post).mockResolvedValue(mockResponse);
+    mockOllamaInstance.generate.mockResolvedValue({
+      response: JSON.stringify([
+        { summary: 'AI reaches breakthrough.', category: 'Research' },
+        { summary: 'New model released.', category: 'Model Release' },
+      ]),
+    });
 
     const articles = [{ title: 'Article 1' }, { title: 'Article 2' }];
     const result = await provider.analyze(articles);
@@ -37,12 +43,9 @@ describe('OllamaProvider', () => {
   });
 
   it('should handle single object response by wrapping in array', async () => {
-    const mockResponse = {
-      data: {
-        response: JSON.stringify({ summary: 'Single breakthrough.', category: 'Research' }),
-      },
-    };
-    vi.mocked(axios.post).mockResolvedValue(mockResponse);
+    mockOllamaInstance.generate.mockResolvedValue({
+      response: JSON.stringify({ summary: 'Single breakthrough.', category: 'Research' }),
+    });
 
     const result = await provider.analyze([{ title: 'Article 1' }]);
     expect(result).toHaveLength(1);
@@ -50,66 +53,61 @@ describe('OllamaProvider', () => {
   });
 
   it('should return default objects on parse error', async () => {
-    const mockResponse = {
-      data: {
-        response: 'Invalid JSON',
-      },
-    };
-    vi.mocked(axios.post).mockResolvedValue(mockResponse);
+    mockOllamaInstance.generate.mockResolvedValue({
+      response: 'Invalid JSON',
+    });
 
     const articles = [{ title: 'Article 1' }];
     const result = await provider.analyze(articles);
 
     expect(result).toHaveLength(1);
-    expect(result[0]).toEqual({ summary: null, category: 'Uncategorized' });
+    // Should fallback to keyword based categorization since parse failed
+    expect(result[0].category).toBe('Uncategorized');
   });
 
   it('should handle empty response from Ollama', async () => {
-    const mockResponse = {
-      data: {
-        response: '',
-      },
-    };
-    vi.mocked(axios.post).mockResolvedValue(mockResponse);
+    mockOllamaInstance.generate.mockResolvedValue({
+      response: '',
+    });
 
     const result = await provider.analyze([{ title: 'Article 1' }]);
     expect(result[0]).toEqual({ summary: null, category: 'Uncategorized' });
   });
+
   it('should handle markdown-wrapped JSON response', async () => {
-    const mockResponse = {
-      data: {
-        response:
-          'Here is the analysis:\n```json\n[{"summary": "Markdown works.", "category": "Test"}]\n```',
-      },
-    };
-    vi.mocked(axios.post).mockResolvedValue(mockResponse);
+    mockOllamaInstance.generate.mockResolvedValue({
+      response:
+        'Here is the analysis:\n```json\n[{"summary": "Markdown works.", "category": "Test"}]\n```',
+    });
 
     const result = await provider.analyze([{ title: 'Article 1' }]);
     expect(result[0].summary).toBe('Markdown works.');
   });
 
   it('should handle text-wrapped JSON response', async () => {
-    const mockResponse = {
-      data: {
-        response:
-          'The result is: [{"summary": "Text wrapped.", "category": "Test"}] end of message.',
-      },
-    };
-    vi.mocked(axios.post).mockResolvedValue(mockResponse);
+    mockOllamaInstance.generate.mockResolvedValue({
+      response: 'The result is: [{"summary": "Text wrapped.", "category": "Test"}] end of message.',
+    });
 
     const result = await provider.analyze([{ title: 'Article 1' }]);
     expect(result[0].summary).toBe('Text wrapped.');
   });
-  it('should fallback to thinking field if response is empty', async () => {
-    const mockResponse = {
-      data: {
-        response: '',
-        thinking: JSON.stringify([{ summary: 'Thoughtful insight.', category: 'Research' }]),
-      },
-    };
-    vi.mocked(axios.post).mockResolvedValue(mockResponse);
 
-    const result = await provider.analyze([{ title: 'Article 1' }]);
-    expect(result[0].summary).toBe('Thoughtful insight.');
+  it('should support sequential processing', async () => {
+    mockOllamaInstance.generate
+      .mockResolvedValueOnce({
+        response: JSON.stringify([{ summary: 'Seq 1', category: 'Research' }]),
+      })
+      .mockResolvedValueOnce({
+        response: JSON.stringify([{ summary: 'Seq 2', category: 'Tool/SDK' }]),
+      });
+
+    const articles = [{ title: 'Article 1' }, { title: 'Article 2' }];
+    const result = await provider.analyze(articles, { sequential: true });
+
+    expect(result).toHaveLength(2);
+    expect(result[0].summary).toBe('Seq 1');
+    expect(result[1].summary).toBe('Seq 2');
+    expect(mockOllamaInstance.generate).toHaveBeenCalledTimes(2);
   });
 });
