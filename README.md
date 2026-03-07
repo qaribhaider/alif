@@ -2,8 +2,9 @@
 
 **The Autonomous AI Signal Digest CLI.**
 
-Alif (ألف) scours the web for high-signal AI developments, selects the most relevant breakthroughs using LLMs, and delivers a curated digest directly to your workspace.
+Alif (ألف) scours the web for high-signal AI developments, cuts through the noise using a multi-layer scoring system, and delivers a curated daily digest directly to your workspace — powered by your own LLM.
 
+[![npm version](https://img.shields.io/npm/v/alif-digest.svg)](https://www.npmjs.com/package/alif-digest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 
@@ -11,17 +12,15 @@ Alif (ألف) scours the web for high-signal AI developments, selects the most r
 
 ## ⚡️ Quick Start
 
-Alif helps you track AI breakthroughs by aggregating and analyzing high-signal sources. Follow these steps to get started:
-
 ### 1. Install
 
 ```bash
 npm install -g alif-digest
 ```
 
-### 2. Setup
+### 2. Initialize
 
-Initialize your environment. Alif will guide you through connecting an LLM (Local Ollama, Anthropic, or OpenRouter) and setting up your delivery channels.
+Alif will interactively guide you through connecting an LLM (Local Ollama, Anthropic, or OpenRouter) and setting up your delivery channels.
 
 ```bash
 alif init
@@ -29,26 +28,50 @@ alif init
 
 ### 3. Run
 
-Generate your daily digest. Alif will scrape all sources, filter the noise, analyze the breakthroughs, and deliver the results.
+Alif scrapes all sources, applies multi-layer scoring, analyzes the top items with your LLM, and delivers the results.
 
 ```bash
 alif run
+
+# Skip source cooldown (re-fetch all sources immediately)
+alif run --force
 ```
 
 ### 4. Schedule
 
-Keep the signals flowing by checking for scheduled runs.
+Keep the signals flowing automatically.
 
 ```bash
-alif schedule add
-alif schedule check
+alif schedule add     # Schedule a recurring digest
+alif schedule list    # View scheduled jobs
+alif schedule check   # Trigger any pending scheduled jobs
 ```
+
+---
+
+## 🧠 How It Works: Multi-Layer Scoring
+
+Alif uses a two-layer signal detection pipeline to find the articles that matter:
+
+**Layer 1 — Keyword + Consensus + Noise Reduction**
+Every article is scored based on:
+
+- **Keyword Matching**: Articles containing high-signal terms (e.g., breakthrough, AGI, o1) are boosted.
+- **Consensus Bonus**: If the same story appears across multiple independent feeds, it gets an extra boost (up to +40 points) — a strong signal the internet is talking about it.
+- **Negative Penalties**: Articles with low-signal indicators (e.g., "sponsored", "waitlist", "top 10") are penalised automatically.
+
+The top 50 candidates from Layer 1 are passed to Layer 2.
+
+**Layer 2 — AI Article Scoring** _(default: enabled)_
+The top 50 candidates are sent as a batch to your configured LLM, which rates each from 0–100 based on genuine novelty and importance.
+
+**Final Score** = Average of Layer 1 and Layer 2. Only articles above your `signalThreshold` are selected, and the top `maxItemsPerRun` are delivered.
 
 ---
 
 ## 🤖 Models
 
-Use standard instruction-tuned models that support structured output. Avoid thinking/reasoning models.
+Use **standard instruction-tuned models** that support structured output. Avoid thinking/reasoning models (e.g. DeepSeek R1, Qwen Thinking variants) as they interfere with JSON schema generation.
 
 ### Tested Models
 
@@ -59,86 +82,134 @@ Use standard instruction-tuned models that support structured output. Avoid thin
 
 ---
 
-## 🛠 For Tinkers (Customize & Contribute)
+## 🛠 CLI Reference
 
-Alif is built with extreme modularity. Everything from scrapers to LLM providers follows a strict factory pattern.
+### `alif init`
 
-### Architecture
+Interactive wizard to configure your LLM provider, model, delivery channel, and preferences.
 
-- **Inspiration**: Built to solve the "noise" problem in AI news.
-- **Persistence**: Local SQLite database handles article deduplication and history.
-- **Workflow**: `Scraper` → `Deduplicator` → `Keyword Scorer` → `LLM Analyzer` → `Delivery`.
+### `alif run [--force]`
 
-### Customizing Sources & Keywords
+Run the full pipeline. Use `--force` to bypass the source cooldown.
 
-Your feeds are stored in `~/.config/alif/feeds.json`. You can add any source using the supported types: `rss`, `api`, `json`, or `scrape`.
+### `alif config`
 
-**Keyword Signal Overrides**
-Alif ships with a set of default base keywords. If you want to change what Alif considers "high-signal" (or silence certain topics), add a `customKeywords` object to the `preferences` section in `~/.config/alif/config.json`:
+Manage your configuration without manually editing `config.json`.
+
+```bash
+alif config show                          # Print current config
+alif config set signalThreshold 70        # Update a preference value
+alif config set maxItemsPerRun 5          # Change how many items are delivered
+alif config set sequentialAnalysis true   # Enable one-by-one LLM processing
+alif config toggle-ai-scoring             # Toggle Layer 2 AI Article Scoring on/off
+```
+
+### `alif schedule`
+
+```bash
+alif schedule add     # Add a new cron schedule
+alif schedule list    # List all schedules
+alif schedule delete  # Remove a schedule
+alif schedule check   # Run any due schedules
+```
+
+### `alif debug`
+
+```bash
+alif debug llm <provider> --model <name> [--key <api-key>]
+# Test your LLM connection and see the full audit trail (prompt, response, latency)
+
+alif debug audit-feeds [--output <path>]
+# Scrape all feeds dry-run: see item counts and content sizes per source
+# Saves a detailed JSON report (default: ~/.config/alif/audit_report.json)
+```
+
+---
+
+## ⚙️ Configuration Reference
+
+Config is stored at `~/.config/alif/config.json`. Most values can be changed with `alif config set`.
+
+| Preference                | Type      | Default | Description                                                      |
+| ------------------------- | --------- | ------- | ---------------------------------------------------------------- |
+| `signalThreshold`         | `number`  | `60`    | Minimum score (0–100) for an article to qualify                  |
+| `maxItemsPerRun`          | `number`  | `10`    | Max articles delivered per run                                   |
+| `sourceCooldownMinutes`   | `number`  | `5`     | Minimum gap between re-fetching the same source                  |
+| `sequentialAnalysis`      | `boolean` | `false` | Analyze articles one-by-one (recommended for small local models) |
+| `enableAIArticlesScoring` | `boolean` | `true`  | Enable Layer 2 LLM-based article scoring                         |
+| `customKeywords`          | `object`  | `{}`    | Add or override keyword signal weights                           |
+| `negativeKeywords`        | `object`  | `{}`    | Add custom noise/penalty keywords                                |
+
+**Custom keywords example:**
 
 ```json
-"preferences": {
-  "signalThreshold": 60,
-  "sequentialAnalysis": true,
-  "customKeywords": {
-    "my-favorite-framework": 100,
-    "topic-i-want-to-ignore": 0,
-    "gpt-5": 50
-  }
+"customKeywords": {
+  "my-framework": 30,
+  "competitor-name": 0
+},
+"negativeKeywords": {
+  "webinar": 20
 }
 ```
 
-- **`signalThreshold`**: Minimum score (0-100) for an article to be considered "high-signal".
-- **`sequentialAnalysis`**: If `true`, Alif will analyze articles one-by-one. This is **highly recommended** for local models (like Ollama 2B/3B) that might struggle with batching multiple items in one prompt.
-- **`customKeywords`**: Your custom keywords will be merged with the base keywords. If you define a key that already exists, your weight will override the default.
+---
 
-### Project Structure
+## 🏗 Architecture
 
-- `src/core/scrapers/`: Logic for data ingestion.
-- `src/providers/llm/`: Support for Ollama, Anthropic, and OpenRouter.
-- `src/providers/delivery/`: Slack Block Kit and generic Webhook support.
+```
+Feeds (81 default sources)
+  → Scrapers (RSS, API, JSON, HTML, ArXiv)
+    → Deduplicator
+      → Layer 1: Keyword Scorer + Consensus Scorer - Negative Scorer
+        → Top 50 Candidates
+          → Layer 2: LLM Batch Scorer (if enabled)
+            → Final Score = avg(L1, L2)
+              → LLM Analyzer (summary + category)
+                → Delivery (Slack / Webhook)
+```
 
-### Local Development
+- **Sources**: Configured in `~/.config/alif/feeds.json`
+- **History**: Local SQLite database at `~/.config/alif/alif.db`
+- **Providers**: `src/providers/llm/` and `src/providers/delivery/`
+
+---
+
+## 🧑‍💻 Local Development
 
 ```bash
-# Install dependencies
 npm install
-
-# Run the CLI from source (requires one-time initialization)
-npm run dev -- init
-npm run dev -- run
-
-# Execute tests
-npm run test
+npm run dev -- init   # set up your local config
+npm run dev -- run    # run from source
+npm run test          # run test suite
+npm run lint          # lint check
 ```
 
 > [!TIP]
-> **Developer Hint**: The CLI looks for configuration in `~/.config/alif/config.json`. If you are running in development, you still need to run `npm run dev -- init` once to generate your local config and database path.
+> Configuration lives at `~/.config/alif/config.json`. You still need to run `npm run dev -- init` once before running from source.
 
-### Troubleshooting Husky (GUI / GitHub Desktop)
+### Troubleshooting Husky (GUI clients)
 
-If you're using a GUI client like GitHub Desktop on macOS and the pre-commit hooks fail because `npm` or `node` is not found, you need to ensure Husky can find your PATH.
-
-Run the following in your terminal:
+If pre-commit hooks fail in GitHub Desktop because `npm` is not found:
 
 ```bash
 mkdir -p ~/.config/husky
 echo 'export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"' > ~/.config/husky/init.sh
 ```
 
-### Contributing
+---
+
+## 🤝 Contributing
 
 1. Fork the repo.
 2. Create your feature branch (`git checkout -b feature/amazing-scraper`).
-3. Commit your changes (`git commit -m 'Add support for NewsAPI'`).
-4. Push to the branch (`git push origin feature/amazing-scraper`).
-5. Open a Pull Request.
+3. Commit your changes (`git commit -m 'feat: add NewsAPI scraper'`).
+4. Push and open a Pull Request.
 
 ---
 
 ## 📢 Acknowledgements
 
-Special thanks to [Roland](https://github.com/rolandbrecht/), whose initial technical foundation helped turn this concept into a reality and [Antigravity](https://antigravity.google/) for the help in building this project.
+Thanks to [Roland](https://github.com/rolandbrecht/) for the initial technical foundation, and [Antigravity](https://antigravity.google/) for the help in building this project.
 
 ## 📄 License
 
