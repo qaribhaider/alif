@@ -1,7 +1,13 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { generateText, Output } from 'ai';
 import { LLMProvider, AnalysisResult, LLMDebugInfo } from './index.js';
-import { AnalysisSchema, SYSTEM_PROMPT, getBatchPrompt } from './common.js';
+import {
+  AnalysisSchema,
+  ScoringSchema,
+  SYSTEM_PROMPT,
+  getBatchPrompt,
+  getScoringPrompt,
+} from './common.js';
 
 export class AnthropicProvider implements LLMProvider {
   private latestDebugInfo: LLMDebugInfo | null = null;
@@ -48,6 +54,22 @@ export class AnthropicProvider implements LLMProvider {
       };
 
       return articles.map(() => ({ summary: null, category: 'Uncategorized' }));
+    }
+  }
+
+  async score(titles: string[]): Promise<number[]> {
+    if (titles.length === 0) return [];
+    const prompt = getScoringPrompt(titles);
+    try {
+      const { output } = await generateText({
+        model: this.provider(this.options.model),
+        output: Output.object({ schema: ScoringSchema }),
+        system: SYSTEM_PROMPT,
+        prompt,
+      });
+      return output.scores;
+    } catch {
+      return titles.map(() => 0);
     }
   }
 

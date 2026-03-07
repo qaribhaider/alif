@@ -4,9 +4,11 @@ import { LLMProvider, AnalysisResult, LLMDebugInfo } from './index.js';
 import {
   AnalysisSchema,
   SingleArticleSchema,
+  ScoringSchema,
   SYSTEM_PROMPT,
   getBatchPrompt,
   getSinglePrompt,
+  getScoringPrompt,
 } from './common.js';
 
 export class OllamaProvider implements LLMProvider {
@@ -135,6 +137,22 @@ export class OllamaProvider implements LLMProvider {
 
       return { summary: null, category };
     });
+  }
+
+  async score(titles: string[]): Promise<number[]> {
+    if (titles.length === 0) return [];
+    const prompt = getScoringPrompt(titles);
+    try {
+      const { output } = await generateText({
+        model: this.model,
+        output: Output.object({ schema: ScoringSchema }),
+        prompt,
+        providerOptions: { ollama: { think: false } },
+      });
+      return output.scores;
+    } catch {
+      return titles.map(() => 0);
+    }
   }
 
   getLatestDebugInfo(): LLMDebugInfo | null {

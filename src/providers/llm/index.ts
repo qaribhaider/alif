@@ -14,5 +14,6 @@ export interface LLMProvider {
     articles: { title: string; content?: string }[],
     options?: { sequential?: boolean },
   ): Promise<AnalysisResult[]>;
+  score(titles: string[]): Promise<number[]>;
   getLatestDebugInfo?(): LLMDebugInfo | null;
 }

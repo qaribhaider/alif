@@ -1,7 +1,13 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { generateText, Output } from 'ai';
 import { LLMProvider, AnalysisResult, LLMDebugInfo } from './index.js';
-import { AnalysisSchema, SYSTEM_PROMPT, getBatchPrompt } from './common.js';
+import {
+  AnalysisSchema,
+  ScoringSchema,
+  SYSTEM_PROMPT,
+  getBatchPrompt,
+  getScoringPrompt,
+} from './common.js';
 
 export class OpenRouterProvider implements LLMProvider {
   private latestDebugInfo: LLMDebugInfo | null = null;
@@ -51,6 +57,22 @@ export class OpenRouterProvider implements LLMProvider {
 
       console.error(`[OpenRouter] Error: ${errMsg}`);
       return articles.map(() => ({ summary: null, category: 'Uncategorized' }));
+    }
+  }
+
+  async score(titles: string[]): Promise<number[]> {
+    if (titles.length === 0) return [];
+    const prompt = getScoringPrompt(titles);
+    try {
+      const { output } = await generateText({
+        model: this.client.chat(this.options.model),
+        output: Output.object({ schema: ScoringSchema }),
+        system: SYSTEM_PROMPT,
+        prompt,
+      });
+      return output.scores;
+    } catch {
+      return titles.map(() => 0);
     }
   }
 

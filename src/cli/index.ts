@@ -5,6 +5,7 @@ import { initCommand } from './commands/init.js';
 import { runCommand } from './commands/run.js';
 import { scheduleCommand } from './commands/schedule.js';
 import { debugCommand } from './commands/debug.js';
+import { configCommand } from './commands/config.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../../package.json');
@@ -37,5 +38,6 @@ program
   });
 
 program.addCommand(debugCommand);
+program.addCommand(configCommand);
 
 program.parse(process.argv);
