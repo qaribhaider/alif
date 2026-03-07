@@ -80,6 +80,10 @@ Use **standard instruction-tuned models** that support structured output. Avoid 
 
 Interactive wizard to configure your LLM provider, model, delivery channel, and preferences.
 
+### `alif validate`
+
+Runs a strict pre-flight check on your `config.json` and `feeds.json` files. It verifies that your Cloud LLM API keys are present (if selected), that Delivery Webhook URLs are valid HTTP destinations, and that the `feeds.json` array exists and contains the correct format schema.
+
 ### `alif run [--force] [--verbose] [--quiet]`
 
 Run the full pipeline.
