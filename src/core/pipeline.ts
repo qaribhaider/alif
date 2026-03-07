@@ -130,9 +130,10 @@ export class Pipeline {
         const contentLower = item.content?.toLowerCase() || '';
 
         // Find which keywords this article matches
-        const matches = allScoringKeywords.filter(
-          (k) => titleLower.includes(k) || contentLower.includes(k),
-        );
+        const matches = allScoringKeywords.filter((k) => {
+          const kwLower = k.toLowerCase();
+          return titleLower.includes(kwLower) || contentLower.includes(kwLower);
+        });
 
         // If it defines NEW keywords we haven't seen in higher-ranked articles, keep it.
         // If it matches NO keywords (just consensus score), keep it.
