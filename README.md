@@ -49,23 +49,15 @@ alif schedule check   # Trigger any pending scheduled jobs
 
 ---
 
-## 🧠 How It Works: Multi-Layer Scoring
+## ✨ Features
 
-Alif uses a two-layer signal detection pipeline to find the articles that matter:
-
-**Layer 1 — Keyword + Consensus + Noise Reduction**
-Every article is scored based on:
-
-- **Keyword Matching**: Articles containing high-signal terms (e.g., breakthrough, AGI, o1) are boosted.
-- **Consensus Bonus**: If the same story appears across multiple independent feeds, it gets an extra boost (up to +40 points) — a strong signal the internet is talking about it.
-- **Negative Penalties**: Articles with low-signal indicators (e.g., "sponsored", "waitlist", "top 10") are penalised automatically.
-
-The top 50 candidates from Layer 1 are passed to Layer 2.
-
-**Layer 2 — AI Article Scoring** _(default: enabled)_
-The top 50 candidates are sent as a batch to your configured LLM, which rates each from 0–100 based on genuine novelty and importance.
-
-**Final Score** = Average of Layer 1 and Layer 2. Only articles above your `signalThreshold` are selected, and the top `maxItemsPerRun` are delivered.
+- **Multi-Layer AI Scoring**: Specialized two-stage evaluation engine combining keyword heuristics and deep NLP analysis to surface truly important signals.
+- **Smart Deduplication**: Blazing-fast fuzzy clustering ensures you never read three variations of the same news story.
+- **Aggressive Noise Reduction**: Automatically downranks PR pieces, sponsored fluff, and empty listicles.
+- **Broad Content Ingestion**: Seamlessly scrapes various RSS, JSON API, raw HTML, and ArXiv feeds.
+- **Customizable Delivery**: Push your personalized daily digests directly to Slack or any Webhook.
+- **Bring Your Own AI**: Works out-of-the-box with local Ollama models or cloud providers like OpenRouter.
+- **Built-in Automation**: Schedule recurring digests to keep your feeds curated entirely on autopilot.
 
 ---
 
@@ -164,16 +156,18 @@ Config is stored at `~/.config/alif/config.json`. Most values can be changed wit
 
 ## 🏗 Architecture
 
-```
+```text
 Feeds (81 default sources)
   → Scrapers (RSS, API, JSON, HTML, ArXiv)
-    → Deduplicator
-      → Layer 1: Keyword Scorer + Consensus Scorer - Negative Scorer
-        → Top 50 Candidates
-          → Layer 2: LLM Batch Scorer (if enabled)
-            → Final Score = avg(L1, L2)
-              → LLM Analyzer (summary + category)
-                → Delivery (Slack / Webhook)
+    → Exact URI Pruning
+      → Layer 1: Positive Keywords - Negative Penalties
+        → Top 150 Candidates
+          → NLP Deduplicator (Talisman Fuzzy Clustering)
+            → Top 25 Candidates
+              → Layer 2: LLM Batch Scorer
+                → Final Score = (L1 * 0.70) + (L2 * 0.30)
+                  → LLM Analyzer (summary + category)
+                    → Delivery (Slack / Webhook)
 ```
 
 - **Sources**: Configured in `~/.config/alif/feeds.json`

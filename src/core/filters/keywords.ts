@@ -3,6 +3,10 @@ import { ScrapedArticle } from '../scraper-types.js';
 export class KeywordScorer {
   constructor(private keywords: Record<string, number>) {}
 
+  getKeywords(): Record<string, number> {
+    return this.keywords;
+  }
+
   score(article: ScrapedArticle): number {
     let score = 0;
     const text = `${article.title} ${article.content || ''}`.toLowerCase();

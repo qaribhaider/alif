@@ -3,7 +3,7 @@ import { ScraperOrchestrator } from './orchestrator.js';
 import { ScraperSource } from './scraper-types.js';
 import { KeywordScorer } from './filters/keywords.js';
 import { Deduplicator } from './filters/deduplicator.js';
-import { ConsensusScorer } from './filters/consensus.js';
+
 import { ArticleStore, AnalysedArticle } from '../db/article-store.js';
 import { SourceHealthStore } from '../db/source-health-store.js';
 import { Database } from 'better-sqlite3';
@@ -13,13 +13,13 @@ import { DeliveryProvider, Digest } from '../providers/delivery/index.js';
 import { BASE_KEYWORDS, NEGATIVE_KEYWORDS } from './default-keywords.js';
 import { logger } from './logger.js';
 
-const LAYER2_CANDIDATE_LIMIT = 50;
+const LAYER2_CANDIDATE_LIMIT = 25;
 
 export class Pipeline {
   private orchestrator: ScraperOrchestrator;
   private scorer: KeywordScorer;
   private negativeScorer: KeywordScorer;
-  private consensus: ConsensusScorer;
+
   private deduplicator: Deduplicator;
   private articleStore: ArticleStore;
   private healthStore: SourceHealthStore;
@@ -43,7 +43,7 @@ export class Pipeline {
 
     this.scorer = new KeywordScorer(mergedKeywords);
     this.negativeScorer = new KeywordScorer(mergedNegative);
-    this.consensus = new ConsensusScorer();
+
     this.deduplicator = new Deduplicator();
     this.articleStore = new ArticleStore(db);
     this.healthStore = new SourceHealthStore(db);
@@ -95,25 +95,61 @@ export class Pipeline {
       newItemsCount = newItems.length;
       logger.info(`${newItemsCount} new items after incremental filter.`);
 
-      // Deduplication
-      const unique = this.deduplicator.process(newItems);
+      // Deduplication (Exact URL/Title mapping only on massive arrays)
+      const unique = this.deduplicator.removeExactDuplicates(newItems);
 
-      // --- LAYER 1: Keyword + Consensus - Negative ---
-      const consensusBonuses = this.consensus.score(unique);
+      // --- LAYER 1: Keyword - Negative ---
       const layer1Scored = unique.map((a) => {
         const positive = this.scorer.score(a);
         const negative = this.negativeScorer.score(a);
-        const consensus = consensusBonuses.get(a.id) ?? 0;
-        const layer1Score = Math.max(0, positive - negative + consensus);
+        const layer1Score = Math.max(0, positive - negative);
         return { ...a, layer1Score };
       });
 
       logger.info(`Layer 1 scoring complete — ${layer1Scored.length} candidates ranked.`);
 
-      // Select top candidates for Layer 2 (or final cut if Layer 2 disabled)
-      const candidates = layer1Scored
-        .sort((a, b) => b.layer1Score - a.layer1Score)
-        .slice(0, LAYER2_CANDIDATE_LIMIT);
+      // Take top N strictly by Layer 1 score first to prune the loop size
+      const sortedL1 = layer1Scored.sort((a, b) => b.layer1Score - a.layer1Score).slice(0, 150);
+
+      // Fuzzy Title Deduplication (O(N^2) string matching - now highly optimized since N=150)
+      const semanticDeduped = this.deduplicator.removeFuzzyDuplicates(sortedL1);
+
+      // Lightweight Topic/Keyword Deduplication
+      // We want to avoid sending 5 different "GPT" articles to the LLM.
+      // We iterate through our top candidates and track which keywords they "fire" on.
+      // If a candidate fires ONLY on keywords we've already "seen" from higher candidates, we skip it.
+      const uniqueCandidates: typeof sortedL1 = [];
+      const seenKeywords = new Set<string>();
+
+      const allScoringKeywords = Object.keys(this.scorer.getKeywords());
+
+      for (const item of semanticDeduped) {
+        if (uniqueCandidates.length >= LAYER2_CANDIDATE_LIMIT) break;
+
+        const titleLower = item.title.toLowerCase();
+        const contentLower = item.content?.toLowerCase() || '';
+
+        // Find which keywords this article matches
+        const matches = allScoringKeywords.filter(
+          (k) => titleLower.includes(k) || contentLower.includes(k),
+        );
+
+        // If it defines NEW keywords we haven't seen in higher-ranked articles, keep it.
+        // If it matches NO keywords (just consensus score), keep it.
+        // If it only matches keywords we already have coverage for, drop it.
+        const isDuplicateTopic = matches.length > 0 && matches.every((k) => seenKeywords.has(k));
+
+        if (!isDuplicateTopic) {
+          uniqueCandidates.push(item);
+          matches.forEach((k) => seenKeywords.add(k));
+        } else {
+          logger.debug(
+            `[Dedupe] Skipping "${item.title}" (topic already covered by: ${matches.join(',')})`,
+          );
+        }
+      }
+
+      const candidates = uniqueCandidates;
 
       let finalScored: ((typeof candidates)[0] & { finalScore: number })[];
 
@@ -158,7 +194,7 @@ export class Pipeline {
 
         finalScored = candidates.map((a) => {
           const layer2Score = layer2Map.get(a.id) ?? 0;
-          const finalScore = Math.round((a.layer1Score + layer2Score) / 2);
+          const finalScore = Math.round(a.layer1Score * 0.7 + layer2Score * 0.3);
           return { ...a, finalScore };
         });
         logger.success(`Layer 2 complete.`);
