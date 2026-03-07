@@ -4,6 +4,10 @@ import { OllamaProvider } from '../../providers/llm/ollama.js';
 import { AnthropicProvider } from '../../providers/llm/anthropic.js';
 import { OpenRouterProvider } from '../../providers/llm/openrouter.js';
 import { LLMProvider } from '../../providers/llm/index.js';
+import { ScraperOrchestrator } from '../../core/orchestrator.js';
+import { ConfigManager } from '../../core/config-manager.js';
+import fs from 'fs';
+import path from 'path';
 
 export const debugCommand = new Command('debug').description('Debug utilities for Alif');
 
@@ -79,4 +83,69 @@ debugCommand
     console.log('\n' + '='.repeat(50));
     console.log(`TOTAL PROCESS TIME: ${totalLatency}ms`);
     console.log('='.repeat(50));
+  });
+
+debugCommand
+  .command('audit-feeds')
+  .description('Audit all configured feeds for volume and data size')
+  .option('--output <path>', 'Custom output path for JSON report')
+  .action(async (options) => {
+    const configManager = ConfigManager.getInstance();
+    if (!configManager.exists()) {
+      throw new Error('Alif is not initialized. Run "alif init" first.');
+    }
+
+    const config = configManager.load();
+    if (!fs.existsSync(config.feedsPath)) {
+      throw new Error(`Feeds file not found at ${config.feedsPath}`);
+    }
+
+    const feeds = JSON.parse(fs.readFileSync(config.feedsPath, 'utf-8'));
+    console.log(`[Diagnostic] Auditing ${feeds.length} feeds...`);
+
+    const orchestrator = new ScraperOrchestrator();
+    const startTime = Date.now();
+    const results = await orchestrator.runAll(feeds);
+    const duration = Date.now() - startTime;
+
+    const auditData = results.map((res) => {
+      const totalChars = res.items.reduce(
+        (acc, item) => acc + (item.content?.length || 0) + (item.title?.length || 0),
+        0,
+      );
+      return {
+        source: res.source,
+        status: res.status,
+        itemCount: res.items.length,
+        totalCharacters: totalChars,
+        averageItemSize: res.items.length > 0 ? Math.round(totalChars / res.items.length) : 0,
+        error: res.error,
+      };
+    });
+
+    const summary = {
+      totalFeeds: feeds.length,
+      successfulFeeds: auditData.filter((d) => d.status === 'ok').length,
+      failedFeeds: auditData.filter((d) => d.status === 'error').length,
+      totalItems: auditData.reduce((acc, d) => acc + d.itemCount, 0),
+      totalCharacters: auditData.reduce((acc, d) => acc + d.totalCharacters, 0),
+      durationMs: duration,
+      timestamp: new Date().toISOString(),
+    };
+
+    const reportPath =
+      options.output || path.join(configManager.getConfigDir(), 'audit_report.json');
+    fs.writeFileSync(reportPath, JSON.stringify({ summary, details: auditData }, null, 2));
+
+    console.log('\n' + '='.repeat(50));
+    console.log('FEED AUDIT SUMMARY');
+    console.log('='.repeat(50));
+    console.log(`Total Feeds:      ${summary.totalFeeds}`);
+    console.log(`Successful:       ${summary.successfulFeeds}`);
+    console.log(`Failed:           ${summary.failedFeeds}`);
+    console.log(`Total Items:      ${summary.totalItems}`);
+    console.log(`Total Content:    ${(summary.totalCharacters / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`Time taken:       ${(duration / 1000).toFixed(2)}s`);
+    console.log('='.repeat(50));
+    console.log(`\nDetailed report saved to: ${reportPath}`);
   });
