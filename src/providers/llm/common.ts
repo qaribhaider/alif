@@ -60,21 +60,16 @@ export function getSinglePrompt(article: { title: string; content?: string }[]):
  */
 export function getScoringPrompt(titles: string[]): string {
   return `You are an AI news relevance scorer for a developer and researcher audience.
-Rate each title from 0 to 100 based on genuine importance and novelty to the AI/ML industry.
+Rate each article title from 0 to 100 based on its genuine importance and novelty to the AI/ML industry.
 
-FIRST — AUTOMATIC ZERO (score must be exactly 0):
-Assign 0 immediately if the title contains any of these signals:
-- Words: sponsored, advertisement, waitlist, discount, deal, coupon, giveaway
-- Patterns: "How [Company] saved", "Top N [things]", "N tools/tips/ways"
-- Any call-to-action: sign up, subscribe, register, join now
+SCORING RULES:
+- 80-100: Groundbreaking news (e.g. major model release like GPT-5, AGI milestone, paradigm-shifting tool launch like Cline or Cursor)
+- 50-79:  Significant but not earth-shattering (e.g. major funding round, hardware release, useful open-source model)
+- 20-49:  Mildly interesting (e.g. policy updates, incremental improvements, research papers)
+- 1-19:   Low signal (e.g. tutorials, opinion pieces, listicles)
+- 0:      No signal — MUST be 0 for: sponsored content, advertisements, waitlists, discount/deal posts, clickbait listicles ("Top 10…"), or anything purely promotional
 
-SCORING BANDS (for everything else):
-- 80-100: Groundbreaking (major model release like GPT-5, AGI milestone, critical security breach)
-- 50-79:  Significant (new useful developer tool or AI agent release, notable open-source model, major funding round, key hardware launch)
-- 20-49:  Mildly interesting (policy update, incremental improvement, workshop or conference result)
-- 1-19:   Low signal (tutorial, opinion piece, beginner guide)
-
-IMPORTANT: Return EXACTLY ${titles.length} integer scores, one per title, in the same order. No missing values.
+IMPORTANT: You MUST return exactly ${titles.length} scores, one per title, in the same order. Do not skip any.
 
 Titles:
 ${titles.map((t, i) => `${i}: ${t}`).join('\n')}
