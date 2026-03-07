@@ -118,17 +118,35 @@ export class Pipeline {
 
       if (this.config.preferences.enableAIArticlesScoring) {
         // --- LAYER 2: LLM-based scoring ---
-        console.log(`[Pipeline] Layer 2 AI scoring ${candidates.length} candidates...`);
-        const layer2Scores = await this.llm.score(candidates.map((a) => a.title));
+        // Pre-filter: force-zero any candidate already matching negative keywords.
+        // This is more reliable than asking a small model to follow a "score=0" rule.
+        const needsLLM = candidates.filter((a) => this.negativeScorer.score(a) === 0);
+        const preZeroed = candidates.filter((a) => this.negativeScorer.score(a) > 0);
 
-        // Log each title→score pair for auditability
-        candidates.forEach((a, idx) => {
-          const s = layer2Scores[idx] ?? 0;
-          console.log(`  [L2] ${s.toString().padStart(3)}  ${a.title}`);
+        console.log(
+          `[Pipeline] Layer 2 AI scoring ${needsLLM.length} candidates (${preZeroed.length} pre-zeroed by negative keywords)...`,
+        );
+
+        // Build a map of id → layer2Score, defaulting pre-zeroed titles to 0
+        const layer2Map = new Map<string, number>(preZeroed.map((a) => [a.id, 0]));
+
+        if (needsLLM.length > 0) {
+          const layer2Scores = await this.llm.score(needsLLM.map((a) => a.title));
+
+          // Log each title→score pair for auditability
+          needsLLM.forEach((a, idx) => {
+            const s = layer2Scores[idx] ?? 0;
+            console.log(`  [L2] ${s.toString().padStart(3)}  ${a.title}`);
+            layer2Map.set(a.id, s);
+          });
+        }
+
+        preZeroed.forEach((a) => {
+          console.log(`  [L2]   0  [pre-zeroed]  ${a.title}`);
         });
 
-        finalScored = candidates.map((a, idx) => {
-          const layer2Score = layer2Scores[idx] ?? 0;
+        finalScored = candidates.map((a) => {
+          const layer2Score = layer2Map.get(a.id) ?? 0;
           // Average of both layers only when Layer 2 is enabled
           const finalScore = Math.round((a.layer1Score + layer2Score) / 2);
           return { ...a, finalScore };
