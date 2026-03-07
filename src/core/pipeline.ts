@@ -130,7 +130,19 @@ export class Pipeline {
         const layer2Map = new Map<string, number>(preZeroed.map((a) => [a.id, 0]));
 
         if (needsLLM.length > 0) {
-          const layer2Scores = await this.llm.score(needsLLM.map((a) => a.title));
+          const layer2Scores: number[] = [];
+          const BATCH_SIZE = 10;
+
+          for (let i = 0; i < needsLLM.length; i += BATCH_SIZE) {
+            const batch = needsLLM.slice(i, i + BATCH_SIZE);
+            try {
+              const batchScores = await this.llm.score(batch.map((a) => a.title));
+              // Ensure we align scores, padding with 0 if LLM returned too few
+              layer2Scores.push(...batch.map((_, idx) => batchScores[idx] ?? 0));
+            } catch {
+              layer2Scores.push(...batch.map(() => 0));
+            }
+          }
 
           needsLLM.forEach((a, idx) => {
             const s = layer2Scores[idx] ?? 0;

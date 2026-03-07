@@ -69,9 +69,9 @@ SCORING RULES:
 - 1-19:   Low signal (e.g. tutorials, opinion pieces, listicles)
 - 0:      No signal — MUST be 0 for: sponsored content, advertisements, waitlists, discount/deal posts, clickbait listicles ("Top 10…"), or anything purely promotional
 
-IMPORTANT: You MUST return exactly ${titles.length} scores, one per title, in the same order. Do not skip any.
+IMPORTANT: You MUST return exactly ${titles.length} scores, one per title, in the exact same order. DO NOT output index numbers or a sequential list. Output the actual computed score for each title.
 
-Titles:
-${titles.map((t, i) => `${i}: ${t}`).join('\n')}
+Titles to score:
+${titles.map((t) => `- ${t}`).join('\n')}
 `;
 }
