@@ -6,6 +6,7 @@ import { runCommand } from './commands/run.js';
 import { scheduleCommand } from './commands/schedule.js';
 import { debugCommand } from './commands/debug.js';
 import { configCommand } from './commands/config.js';
+import { validateCommand } from './commands/validate.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../../package.json');
@@ -37,6 +38,13 @@ program
   .addHelpText('after', '\nActions: add, list, delete, check')
   .action(async (action) => {
     await scheduleCommand(action);
+  });
+
+program
+  .command('validate')
+  .description('Run a pre-flight configuration check')
+  .action(async () => {
+    await validateCommand();
   });
 
 program.addCommand(debugCommand);

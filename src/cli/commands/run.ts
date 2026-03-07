@@ -4,6 +4,7 @@ import { createDatabase } from '../../db/connection.js';
 import { runMigrations } from '../../db/migrate.js';
 import { Pipeline } from '../../core/pipeline.js';
 import { configureLogger, logger } from '../../core/logger.js';
+import { Validator } from '../../core/validator.js';
 
 export async function runPipeline(config: any, db: any, force = false) {
   const pipeline = new Pipeline(config, db);
@@ -42,6 +43,10 @@ export async function runCommand(
       noColor: config.preferences.noColor,
       override: options.verbose ? 'verbose' : options.quiet ? 'quiet' : undefined,
     });
+
+    // Pre-flight validation
+    const validator = new Validator(config, config.feedsPath);
+    validator.printAndExitIfFailed();
 
     db = createDatabase(config.dbPath);
     runMigrations(db);
