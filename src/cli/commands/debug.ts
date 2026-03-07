@@ -19,6 +19,7 @@ debugCommand
   .option('--endpoint <url>', 'Base URL/Endpoint (default from config)')
   .option('--key <token>', 'API Key (if required)')
   .option('--sequential', 'Process items one-by-one')
+  .option('--score', 'Test Layer 2 AI Article Scoring instead of analysis')
   .action(async (providerName: string, options) => {
     let provider: LLMProvider;
 
@@ -47,42 +48,79 @@ debugCommand
         throw new Error(`Unknown provider: ${providerName}`);
     }
 
-    const tester = new LLMTester(provider);
-    const { results, debugInfo, totalLatency } = await tester.runTest({
-      sequential: options.sequential,
-    });
-
     console.log('\n' + '='.repeat(50));
     console.log('LLM DIAGNOSTIC AUDIT TRAIL');
     console.log('='.repeat(50));
 
-    if (debugInfo) {
-      console.log('\n[1] PROMPT SENT TO LLM:');
-      console.log('-'.repeat(30));
-      console.log(debugInfo.prompt);
+    if (options.score) {
+      // --- SCORE DEBUG MODE ---
+      const SCORE_TEST_TITLES = [
+        'OpenAI releases GPT-5 — biggest model leap in three years',
+        'DeepSeek V4 open-sourced: beats GPT-4o on 12 benchmarks',
+        'Anthropic raises $5B Series E at $75B valuation',
+        'Cline 2.0 released: autonomous coding agent with computer use',
+        'Top 10 AI tools you should be using in 2025',
+        'Sponsored: How Company X saved millions with AI',
+        'New EU AI Act enforcement deadlines announced',
+        'NVIDIA Blackwell B200 GPUs now available for cloud providers',
+        'Google Antigravity adds agentic coding to all tiers',
+        'A beginner tutorial on building a RAG pipeline',
+      ];
 
-      console.log('\n[2] RAW RESPONSE FROM LLM:');
+      const startTime = Date.now();
+      const scores = await provider.score(SCORE_TEST_TITLES);
+      const latency = Date.now() - startTime;
+
+      console.log(`\n[1] SCORING PROMPT SENT: ${SCORE_TEST_TITLES.length} titles`);
       console.log('-'.repeat(30));
-      if (!debugInfo.rawResponse || debugInfo.rawResponse.trim() === '') {
-        console.log('<<< EMPTY RESPONSE >>>');
-      } else {
-        console.log(debugInfo.rawResponse);
-      }
+      SCORE_TEST_TITLES.forEach((t, i) => console.log(`  ${i}: ${t}`));
+
+      console.log('\n[2] SCORES RETURNED:');
+      console.log('-'.repeat(30));
+      SCORE_TEST_TITLES.forEach((t, i) => {
+        const s = scores[i] ?? '?';
+        const bar = '█'.repeat(Math.round(Number(s) / 5));
+        console.log(`  ${String(s).padStart(3)}  ${bar.padEnd(20)}  ${t}`);
+      });
 
       console.log('\n[3] LATENCY:');
       console.log('-'.repeat(10));
-      console.log(`${debugInfo.latencyMs}ms`);
+      console.log(`${latency}ms`);
+    } else {
+      // --- ANALYSIS DEBUG MODE (existing) ---
+      const tester = new LLMTester(provider);
+      const { results, debugInfo, totalLatency } = await tester.runTest({
+        sequential: options.sequential,
+      });
+
+      if (debugInfo) {
+        console.log('\n[1] PROMPT SENT TO LLM:');
+        console.log('-'.repeat(30));
+        console.log(debugInfo.prompt);
+
+        console.log('\n[2] RAW RESPONSE FROM LLM:');
+        console.log('-'.repeat(30));
+        if (!debugInfo.rawResponse || debugInfo.rawResponse.trim() === '') {
+          console.log('<<< EMPTY RESPONSE >>>');
+        } else {
+          console.log(debugInfo.rawResponse);
+        }
+
+        console.log('\n[3] LATENCY:');
+        console.log('-'.repeat(10));
+        console.log(`${debugInfo.latencyMs}ms`);
+      }
+
+      console.log('\n[4] PARSED RESULTS:');
+      console.log('-'.repeat(30));
+      results.forEach((res, idx) => {
+        console.log(`${idx + 1}. [${res.category}] ${res.summary || 'Summary failed'}`);
+      });
+
+      console.log('\n' + '='.repeat(50));
+      console.log(`TOTAL PROCESS TIME: ${totalLatency}ms`);
+      console.log('='.repeat(50));
     }
-
-    console.log('\n[4] PARSED RESULTS:');
-    console.log('-'.repeat(30));
-    results.forEach((res, idx) => {
-      console.log(`${idx + 1}. [${res.category}] ${res.summary || 'Summary failed'}`);
-    });
-
-    console.log('\n' + '='.repeat(50));
-    console.log(`TOTAL PROCESS TIME: ${totalLatency}ms`);
-    console.log('='.repeat(50));
   });
 
 debugCommand
