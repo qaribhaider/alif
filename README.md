@@ -88,9 +88,13 @@ Use **standard instruction-tuned models** that support structured output. Avoid 
 
 Interactive wizard to configure your LLM provider, model, delivery channel, and preferences.
 
-### `alif run [--force]`
+### `alif run [--force] [--verbose] [--quiet]`
 
-Run the full pipeline. Use `--force` to bypass the source cooldown.
+Run the full pipeline.
+
+- `--force`: Bypass the source cooldown to re-fetch all sources immediately.
+- `--verbose`: Stream detailed layer-by-layer scoring and prompt output (great for debugging LLMs).
+- `--quiet`: Suppress all output except for errors.
 
 ### `alif config`
 
@@ -102,6 +106,8 @@ alif config set signalThreshold 70        # Update a preference value
 alif config set maxItemsPerRun 5          # Change how many items are delivered
 alif config set sequentialAnalysis true   # Enable one-by-one LLM processing
 alif config toggle-ai-scoring             # Toggle Layer 2 AI Article Scoring on/off
+alif config set logLevel verbose          # Change log verbosity (silent, normal, verbose)
+alif config set noColor true              # Disable ANSI colored output
 ```
 
 ### `alif schedule`
@@ -130,15 +136,17 @@ alif debug audit-feeds [--output <path>]
 
 Config is stored at `~/.config/alif/config.json`. Most values can be changed with `alif config set`.
 
-| Preference                | Type      | Default | Description                                                      |
-| ------------------------- | --------- | ------- | ---------------------------------------------------------------- |
-| `signalThreshold`         | `number`  | `60`    | Minimum score (0–100) for an article to qualify                  |
-| `maxItemsPerRun`          | `number`  | `10`    | Max articles delivered per run                                   |
-| `sourceCooldownMinutes`   | `number`  | `5`     | Minimum gap between re-fetching the same source                  |
-| `sequentialAnalysis`      | `boolean` | `false` | Analyze articles one-by-one (recommended for small local models) |
-| `enableAIArticlesScoring` | `boolean` | `true`  | Enable Layer 2 LLM-based article scoring                         |
-| `customKeywords`          | `object`  | `{}`    | Add or override keyword signal weights                           |
-| `negativeKeywords`        | `object`  | `{}`    | Add custom noise/penalty keywords                                |
+| Preference                | Type      | Default    | Description                                                      |
+| ------------------------- | --------- | ---------- | ---------------------------------------------------------------- |
+| `signalThreshold`         | `number`  | `60`       | Minimum score (0–100) for an article to qualify                  |
+| `maxItemsPerRun`          | `number`  | `10`       | Max articles delivered per run                                   |
+| `sourceCooldownMinutes`   | `number`  | `5`        | Minimum gap between re-fetching the same source                  |
+| `sequentialAnalysis`      | `boolean` | `false`    | Analyze articles one-by-one (recommended for small local models) |
+| `enableAIArticlesScoring` | `boolean` | `true`     | Enable Layer 2 LLM-based article scoring                         |
+| `customKeywords`          | `object`  | `{}`       | Add or override keyword signal weights                           |
+| `negativeKeywords`        | `object`  | `{}`       | Add custom noise/penalty keywords                                |
+| `logLevel`                | `string`  | `'normal'` | Set logging verbosity: `'silent'`, `'normal'`, or `'verbose'`    |
+| `noColor`                 | `boolean` | `false`    | Disable colored terminal output (`NO_COLOR=1` also works)        |
 
 **Custom keywords example:**
 

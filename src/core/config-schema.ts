@@ -26,6 +26,8 @@ export const ConfigSchema = z.object({
     enableAIArticlesScoring: z.boolean().default(true),
     customKeywords: z.record(z.string(), z.number()).default({}),
     negativeKeywords: z.record(z.string(), z.number()).default({}),
+    logLevel: z.enum(['silent', 'normal', 'verbose']).default('normal'),
+    noColor: z.boolean().default(false),
   }),
   dbPath: z.string(),
   feedsPath: z.string(),

@@ -26,6 +26,8 @@ describe('ConfigManager', () => {
       enableAIArticlesScoring: true,
       customKeywords: {},
       negativeKeywords: {},
+      logLevel: 'normal' as const,
+      noColor: false,
     },
     dbPath: path.join(mockConfigDir, 'alif.db'),
     feedsPath: path.join(mockConfigDir, 'feeds.json'),

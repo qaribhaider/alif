@@ -2,12 +2,13 @@ import prompts from 'prompts';
 import path from 'path';
 import { ConfigManager } from '../../core/config-manager.js';
 import { Config } from '../../core/config-schema.js';
+import { logger } from '../../core/logger.js';
 
 export async function initCommand() {
   const configManager = ConfigManager.getInstance();
   const configDir = configManager.getConfigDir();
 
-  console.log('--- Alif Initialization ---');
+  logger.log('\n--- Alif Initialization ---');
 
   const response = await prompts([
     {
@@ -71,7 +72,7 @@ export async function initCommand() {
   ]);
 
   if (!response.llmProvider || !response.deliveryProviders) {
-    console.log('Initialization cancelled.');
+    logger.warn('Initialization cancelled.');
     return;
   }
 
@@ -101,6 +102,8 @@ export async function initCommand() {
       enableAIArticlesScoring: response.enableAIArticlesScoring,
       customKeywords: {},
       negativeKeywords: {},
+      logLevel: 'normal' as const,
+      noColor: false,
     },
     dbPath: path.join(configDir, 'alif.db'),
     feedsPath: path.join(configDir, 'feeds.json'),
@@ -108,7 +111,7 @@ export async function initCommand() {
 
   configManager.save(config);
 
-  console.log(`\nConfiguration saved to ${configManager.getConfigFile()}`);
-  console.log(`Database will be located at ${config.dbPath}`);
-  console.log('\nAlif is ready! Run "alif run" to start (after adding feeds).');
+  logger.success(`Configuration saved to ${configManager.getConfigFile()}`);
+  logger.info(`Database will be located at ${config.dbPath}`);
+  logger.success('\nAlif is ready! Run "alif run" to get started.');
 }

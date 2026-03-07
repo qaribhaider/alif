@@ -4,11 +4,12 @@ import { createDatabase } from '../../db/connection.js';
 import { runMigrations } from '../../db/migrate.js';
 import { Scheduler } from '../../core/scheduler.js';
 import { runPipeline } from './run.js';
+import { logger } from '../../core/logger.js';
 
 export async function scheduleCommand(action: string) {
   const configManager = ConfigManager.getInstance();
   if (!configManager.exists()) {
-    console.error('Alif is not initialized. Run "alif init" first.');
+    logger.error('Alif is not initialized. Run "alif init" first.');
     return;
   }
 
@@ -45,15 +46,17 @@ export async function scheduleCommand(action: string) {
 
       if (response.name && response.cron) {
         const id = await scheduler.add(response.name, response.cron, response.time);
-        console.log(
+        logger.success(
           `Schedule added! ID: ${id} (Runs ${response.cron}${response.time ? ` at ${response.time}` : ''})`,
         );
       }
     } else if (action === 'list') {
       const schedules = scheduler.list();
       if (schedules.length === 0) {
-        console.log('No schedules found.');
+        logger.info('No schedules found.');
       } else {
+        // We use consola.log for the table to avoid prefixing every line of the table with icons
+        logger.log('\n');
         console.table(
           schedules.map((s) => ({
             ID: s.id,
@@ -68,7 +71,7 @@ export async function scheduleCommand(action: string) {
     } else if (action === 'delete') {
       const schedules = scheduler.list();
       if (schedules.length === 0) {
-        console.log('No schedules to delete.');
+        logger.info('No schedules to delete.');
         return;
       }
 
@@ -81,16 +84,16 @@ export async function scheduleCommand(action: string) {
 
       if (id) {
         scheduler.remove(id);
-        console.log(`Schedule ${id} deleted.`);
+        logger.success(`Schedule ${id} deleted.`);
       }
     } else if (action === 'check') {
-      console.log('[Scheduler] Checking for due tasks...');
+      logger.info('[Scheduler] Checking for due tasks...');
       await scheduler.checkAndRun(async () => {
         await runPipeline(config, db);
       });
-      console.log('[Scheduler] Check complete.');
+      logger.info('[Scheduler] Check complete.');
     } else {
-      console.error(`Unknown action: ${action}. Available: add, list, delete, check`);
+      logger.error(`Unknown action: ${action}. Available: add, list, delete, check`);
     }
   } finally {
     db.close();

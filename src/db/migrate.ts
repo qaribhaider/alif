@@ -1,4 +1,5 @@
 import { Database } from 'better-sqlite3';
+import { logger } from '../core/logger.js';
 
 const MIGRATIONS = [
   `
@@ -60,7 +61,7 @@ export function runMigrations(db: Database) {
     const lastId = result?.lastId ?? -1;
 
     for (let i = lastId + 1; i < MIGRATIONS.length; i++) {
-      console.log(`[Database] Running migration ${i}...`);
+      logger.info(`[Database] Running migration ${i}...`);
       db.prepare(MIGRATIONS[i]).run();
       db.prepare('INSERT INTO migrations (id) VALUES (?)').run(i);
     }

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { DeliveryProvider, Digest } from './index.js';
+import { logger } from '../../core/logger.js';
 
 export class WebhookDelivery implements DeliveryProvider {
   constructor(private webhookUrl: string) {}
@@ -8,8 +9,9 @@ export class WebhookDelivery implements DeliveryProvider {
     try {
       await axios.post(this.webhookUrl, digest);
     } catch (error) {
-      console.error(
-        `[Webhook Delivery] Error: ${error instanceof Error ? error.message : String(error)}`,
+      logger.error(
+        `[Webhook] Failed to deliver ${digest.items.length} items:`,
+        error instanceof Error ? error.message : String(error),
       );
       throw error;
     }

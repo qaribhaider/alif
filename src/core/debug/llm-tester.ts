@@ -1,4 +1,5 @@
 import { LLMProvider } from '../../providers/llm/index.js';
+import { logger } from '../logger.js';
 
 export interface TestArticle {
   title: string;
@@ -32,8 +33,9 @@ export class LLMTester {
   constructor(private provider: LLMProvider) {}
 
   async runTest(options?: { sequential?: boolean }) {
-    console.log(
-      `\n[LLM Tester] Starting diagnostic test with ${GOLDEN_SET.length} articles (Mode: ${options?.sequential ? 'Sequential' : 'Batch'})...`,
+    logger.log('\n');
+    logger.info(
+      `[LLM Tester] Starting diagnostic test with ${GOLDEN_SET.length} articles (Mode: ${options?.sequential ? 'Sequential' : 'Batch'})...`,
     );
 
     const startTime = Date.now();

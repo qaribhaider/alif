@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { DeliveryProvider, Digest } from './index.js';
+import { logger } from '../../core/logger.js';
 
 export class SlackDelivery implements DeliveryProvider {
   constructor(private webhookUrl: string) {}
@@ -47,8 +48,9 @@ export class SlackDelivery implements DeliveryProvider {
     try {
       await axios.post(this.webhookUrl, { blocks });
     } catch (error) {
-      console.error(
-        `[Slack Delivery] Error: ${error instanceof Error ? error.message : String(error)}`,
+      logger.error(
+        `[Slack] Failed to deliver ${digest.items.length} items:`,
+        error instanceof Error ? error.message : String(error),
       );
       throw error;
     }

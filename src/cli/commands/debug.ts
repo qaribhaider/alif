@@ -8,6 +8,7 @@ import { ScraperOrchestrator } from '../../core/orchestrator.js';
 import { ConfigManager } from '../../core/config-manager.js';
 import fs from 'fs';
 import path from 'path';
+import { logger } from '../../core/logger.js';
 
 export const debugCommand = new Command('debug').description('Debug utilities for Alif');
 
@@ -48,9 +49,9 @@ debugCommand
         throw new Error(`Unknown provider: ${providerName}`);
     }
 
-    console.log('\n' + '='.repeat(50));
-    console.log('LLM DIAGNOSTIC AUDIT TRAIL');
-    console.log('='.repeat(50));
+    logger.log('\n' + '='.repeat(50));
+    logger.info('LLM DIAGNOSTIC AUDIT TRAIL');
+    logger.log('='.repeat(50));
 
     if (options.score) {
       // --- SCORE DEBUG MODE ---
@@ -71,21 +72,21 @@ debugCommand
       const scores = await provider.score(SCORE_TEST_TITLES);
       const latency = Date.now() - startTime;
 
-      console.log(`\n[1] SCORING PROMPT SENT: ${SCORE_TEST_TITLES.length} titles`);
-      console.log('-'.repeat(30));
-      SCORE_TEST_TITLES.forEach((t, i) => console.log(`  ${i}: ${t}`));
+      logger.info(`\n[1] SCORING PROMPT SENT: ${SCORE_TEST_TITLES.length} titles`);
+      logger.info('-'.repeat(30));
+      SCORE_TEST_TITLES.forEach((t, i) => logger.debug(`  ${i}: ${t}`));
 
-      console.log('\n[2] SCORES RETURNED:');
-      console.log('-'.repeat(30));
+      logger.info('\n[2] SCORES RETURNED:');
+      logger.info('-'.repeat(30));
       SCORE_TEST_TITLES.forEach((t, i) => {
         const s = scores[i] ?? '?';
         const bar = '█'.repeat(Math.round(Number(s) / 5));
-        console.log(`  ${String(s).padStart(3)}  ${bar.padEnd(20)}  ${t}`);
+        logger.info(`  ${String(s).padStart(3)}  ${bar.padEnd(20)}  ${t}`);
       });
 
-      console.log('\n[3] LATENCY:');
-      console.log('-'.repeat(10));
-      console.log(`${latency}ms`);
+      logger.info('\n[3] LATENCY:');
+      logger.info('-'.repeat(10));
+      logger.info(`${latency}ms`);
     } else {
       // --- ANALYSIS DEBUG MODE (existing) ---
       const tester = new LLMTester(provider);
@@ -94,32 +95,32 @@ debugCommand
       });
 
       if (debugInfo) {
-        console.log('\n[1] PROMPT SENT TO LLM:');
-        console.log('-'.repeat(30));
-        console.log(debugInfo.prompt);
+        logger.info('\n[1] PROMPT SENT TO LLM:');
+        logger.info('-'.repeat(30));
+        logger.debug(debugInfo.prompt);
 
-        console.log('\n[2] RAW RESPONSE FROM LLM:');
-        console.log('-'.repeat(30));
+        logger.info('\n[2] RAW RESPONSE FROM LLM:');
+        logger.info('-'.repeat(30));
         if (!debugInfo.rawResponse || debugInfo.rawResponse.trim() === '') {
-          console.log('<<< EMPTY RESPONSE >>>');
+          logger.warn('<<< EMPTY RESPONSE >>>');
         } else {
-          console.log(debugInfo.rawResponse);
+          logger.debug(debugInfo.rawResponse);
         }
 
-        console.log('\n[3] LATENCY:');
-        console.log('-'.repeat(10));
-        console.log(`${debugInfo.latencyMs}ms`);
+        logger.info('\n[3] LATENCY:');
+        logger.info('-'.repeat(10));
+        logger.info(`${debugInfo.latencyMs}ms`);
       }
 
-      console.log('\n[4] PARSED RESULTS:');
-      console.log('-'.repeat(30));
+      logger.info('\n[4] PARSED RESULTS:');
+      logger.info('-'.repeat(30));
       results.forEach((res, idx) => {
-        console.log(`${idx + 1}. [${res.category}] ${res.summary || 'Summary failed'}`);
+        logger.info(`${idx + 1}. [${res.category}] ${res.summary || 'Summary failed'}`);
       });
 
-      console.log('\n' + '='.repeat(50));
-      console.log(`TOTAL PROCESS TIME: ${totalLatency}ms`);
-      console.log('='.repeat(50));
+      logger.log('\n' + '='.repeat(50));
+      logger.info(`TOTAL PROCESS TIME: ${totalLatency}ms`);
+      logger.log('='.repeat(50));
     }
   });
 
@@ -139,7 +140,7 @@ debugCommand
     }
 
     const feeds = JSON.parse(fs.readFileSync(config.feedsPath, 'utf-8'));
-    console.log(`[Diagnostic] Auditing ${feeds.length} feeds...`);
+    logger.info(`[Diagnostic] Auditing ${feeds.length} feeds...`);
 
     const orchestrator = new ScraperOrchestrator();
     const startTime = Date.now();
@@ -175,15 +176,15 @@ debugCommand
       options.output || path.join(configManager.getConfigDir(), 'audit_report.json');
     fs.writeFileSync(reportPath, JSON.stringify({ summary, details: auditData }, null, 2));
 
-    console.log('\n' + '='.repeat(50));
-    console.log('FEED AUDIT SUMMARY');
-    console.log('='.repeat(50));
-    console.log(`Total Feeds:      ${summary.totalFeeds}`);
-    console.log(`Successful:       ${summary.successfulFeeds}`);
-    console.log(`Failed:           ${summary.failedFeeds}`);
-    console.log(`Total Items:      ${summary.totalItems}`);
-    console.log(`Total Content:    ${(summary.totalCharacters / 1024 / 1024).toFixed(2)} MB`);
-    console.log(`Time taken:       ${(duration / 1000).toFixed(2)}s`);
-    console.log('='.repeat(50));
-    console.log(`\nDetailed report saved to: ${reportPath}`);
+    logger.log('\n' + '='.repeat(50));
+    logger.info('FEED AUDIT SUMMARY');
+    logger.log('='.repeat(50));
+    logger.info(`Total Feeds:      ${summary.totalFeeds}`);
+    logger.info(`Successful:       ${summary.successfulFeeds}`);
+    logger.info(`Failed:           ${summary.failedFeeds}`);
+    logger.info(`Total Items:      ${summary.totalItems}`);
+    logger.info(`Total Content:    ${(summary.totalCharacters / 1024 / 1024).toFixed(2)} MB`);
+    logger.info(`Time taken:       ${(duration / 1000).toFixed(2)}s`);
+    logger.log('='.repeat(50));
+    logger.success(`\nDetailed report saved to: ${reportPath}`);
   });

@@ -25,6 +25,8 @@ program
   .command('run')
   .description('Run the AI Signal Digest pipeline')
   .option('-f, --force', 'Bypass source cooldown')
+  .option('-v, --verbose', 'Show detailed debug output')
+  .option('-q, --quiet', 'Suppress all output except errors')
   .action(async (options) => {
     await runCommand(options);
   });

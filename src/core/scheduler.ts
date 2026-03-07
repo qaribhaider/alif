@@ -1,5 +1,6 @@
 import { ScheduleStore } from '../db/schedule-store.js';
 import { Database } from 'better-sqlite3';
+import { logger } from './logger.js';
 
 export class Scheduler {
   private store: ScheduleStore;
@@ -65,7 +66,7 @@ export class Scheduler {
       }
 
       if (shouldRun) {
-        console.log(`[Scheduler] Running job: ${schedule.name}`);
+        logger.info(`[Scheduler] Running job: ${schedule.name}`);
         await runner();
         this.store.updateLastRun(schedule.id, now.toISOString());
       }

@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { ConfigManager } from '../../core/config-manager.js';
+import { logger } from '../../core/logger.js';
 
 export const configCommand = new Command('config').description('Manage Alif configuration');
 
@@ -9,11 +10,11 @@ configCommand
   .action(() => {
     const cm = ConfigManager.getInstance();
     if (!cm.exists()) {
-      console.error('Alif is not initialized. Run "alif init" first.');
+      logger.error('Alif is not initialized. Run "alif init" first.');
       process.exit(1);
     }
     const config = cm.load();
-    console.log(JSON.stringify(config, null, 2));
+    logger.log(JSON.stringify(config, null, 2));
   });
 
 configCommand
@@ -22,14 +23,14 @@ configCommand
   .action((key: string, value: string) => {
     const cm = ConfigManager.getInstance();
     if (!cm.exists()) {
-      console.error('Alif is not initialized. Run "alif init" first.');
+      logger.error('Alif is not initialized. Run "alif init" first.');
       process.exit(1);
     }
     const config = cm.load();
     const prefs = config.preferences as Record<string, unknown>;
 
     if (!(key in prefs)) {
-      console.error(`Unknown preference key: "${key}"`);
+      logger.error(`Unknown preference key: "${key}"`);
       process.exit(1);
     }
 
@@ -39,7 +40,7 @@ configCommand
     } else if (typeof current === 'number') {
       const num = Number(value);
       if (isNaN(num)) {
-        console.error(`Value "${value}" is not a valid number.`);
+        logger.error(`Value "${value}" is not a valid number.`);
         process.exit(1);
       }
       prefs[key] = num;
@@ -48,7 +49,7 @@ configCommand
     }
 
     cm.save({ ...config, preferences: prefs as typeof config.preferences });
-    console.log(`✔ Set ${key} = ${prefs[key]}`);
+    logger.success(`Set ${key} = ${prefs[key]}`);
   });
 
 configCommand
@@ -57,7 +58,7 @@ configCommand
   .action(() => {
     const cm = ConfigManager.getInstance();
     if (!cm.exists()) {
-      console.error('Alif is not initialized. Run "alif init" first.');
+      logger.error('Alif is not initialized. Run "alif init" first.');
       process.exit(1);
     }
     const config = cm.load();
@@ -69,5 +70,5 @@ configCommand
       preferences: { ...config.preferences, enableAIArticlesScoring: updated },
     });
 
-    console.log(`✔ AI Article Scoring is now ${updated ? 'ENABLED ✅' : 'DISABLED ❌'}`);
+    logger.success(`AI Article Scoring is now ${updated ? 'ENABLED ✅' : 'DISABLED ❌'}`);
   });

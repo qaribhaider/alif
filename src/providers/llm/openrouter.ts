@@ -8,6 +8,7 @@ import {
   getBatchPrompt,
   getScoringPrompt,
 } from './common.js';
+import { logger } from '../../core/logger.js';
 
 export class OpenRouterProvider implements LLMProvider {
   private latestDebugInfo: LLMDebugInfo | null = null;
@@ -50,12 +51,11 @@ export class OpenRouterProvider implements LLMProvider {
 
       this.latestDebugInfo = {
         prompt,
-        // Capture the actual model response if available (NoObjectGeneratedError includes .text)
         rawResponse: rawText ?? errMsg,
         latencyMs: Date.now() - startTime,
       };
 
-      console.error(`[OpenRouter] Error: ${errMsg}`);
+      logger.error(`[OpenRouter] Error: ${errMsg}`);
       return articles.map(() => ({ summary: null, category: 'Uncategorized' }));
     }
   }

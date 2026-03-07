@@ -8,6 +8,7 @@ import {
   getBatchPrompt,
   getScoringPrompt,
 } from './common.js';
+import { logger } from '../../core/logger.js';
 
 export class AnthropicProvider implements LLMProvider {
   private latestDebugInfo: LLMDebugInfo | null = null;
@@ -45,7 +46,7 @@ export class AnthropicProvider implements LLMProvider {
 
       return output.signals;
     } catch (error) {
-      console.error(`[Anthropic] Error: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(`[Anthropic] Error: ${error instanceof Error ? error.message : String(error)}`);
 
       this.latestDebugInfo = {
         prompt,

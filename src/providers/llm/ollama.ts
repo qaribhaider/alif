@@ -10,6 +10,7 @@ import {
   getSinglePrompt,
   getScoringPrompt,
 } from './common.js';
+import { logger } from '../../core/logger.js';
 
 export class OllamaProvider implements LLMProvider {
   private model: any;
@@ -100,7 +101,7 @@ export class OllamaProvider implements LLMProvider {
             continue;
           }
         }
-        console.error(`[Ollama] Sequential Error for "${article.title}":`, error?.message ?? error);
+        logger.error(`[Ollama] Sequential Error for "${article.title}":`, error?.message ?? error);
         results.push(this.getFallbackResults([article])[0]);
       }
     }
@@ -115,7 +116,7 @@ export class OllamaProvider implements LLMProvider {
   }
 
   private handleError(error: any, prompt: string, startTime: number) {
-    console.error(`[Ollama] Error: ${error instanceof Error ? error.message : String(error)}`);
+    logger.error(`[Ollama] Error: ${error instanceof Error ? error.message : String(error)}`);
     this.latestDebugInfo = {
       prompt,
       rawResponse: error instanceof Error ? error.stack || error.message : String(error),

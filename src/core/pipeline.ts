@@ -11,6 +11,7 @@ import { ProviderFactory } from '../providers/factory.js';
 import { LLMProvider } from '../providers/llm/index.js';
 import { DeliveryProvider, Digest } from '../providers/delivery/index.js';
 import { BASE_KEYWORDS, NEGATIVE_KEYWORDS } from './default-keywords.js';
+import { logger } from './logger.js';
 
 const LAYER2_CANDIDATE_LIMIT = 50;
 
@@ -54,7 +55,7 @@ export class Pipeline {
     const cooldown = this.config.preferences.sourceCooldownMinutes;
     const activeSources = sources.filter((s) => {
       if (!force && this.healthStore.isThrottled(s.id, cooldown)) {
-        console.log(`[Pipeline] Skipping ${s.id} (last check was < ${cooldown}m ago)`);
+        logger.debug(`Skipping ${s.id} (last check was < ${cooldown}m ago)`);
         return false;
       }
       return true;
@@ -65,7 +66,7 @@ export class Pipeline {
     let newItemsCount = 0;
 
     if (activeSources.length > 0) {
-      console.log(`[Pipeline] Scraping ${activeSources.length} sources...`);
+      logger.info(`Scraping ${activeSources.length} sources...`);
       const results = await this.orchestrator.runAll(activeSources);
 
       // Record health
@@ -79,7 +80,7 @@ export class Pipeline {
       }
 
       const allArticles = results.flatMap((r) => r.items);
-      console.log(`[Pipeline] Found ${allArticles.length} raw items.`);
+      logger.info(`Found ${allArticles.length} raw items.`);
 
       // Incremental filter
       const latestTimestamp = this.articleStore.getLatestTimestamp();
@@ -92,7 +93,7 @@ export class Pipeline {
         });
       }
       newItemsCount = newItems.length;
-      console.log(`[Pipeline] ${newItemsCount} new items after incremental filter.`);
+      logger.info(`${newItemsCount} new items after incremental filter.`);
 
       // Deduplication
       const unique = this.deduplicator.process(newItems);
@@ -107,7 +108,7 @@ export class Pipeline {
         return { ...a, layer1Score };
       });
 
-      console.log(`[Pipeline] Layer 1 scoring complete.`);
+      logger.info(`Layer 1 scoring complete — ${layer1Scored.length} candidates ranked.`);
 
       // Select top candidates for Layer 2 (or final cut if Layer 2 disabled)
       const candidates = layer1Scored
@@ -119,42 +120,39 @@ export class Pipeline {
       if (this.config.preferences.enableAIArticlesScoring) {
         // --- LAYER 2: LLM-based scoring ---
         // Pre-filter: force-zero any candidate already matching negative keywords.
-        // This is more reliable than asking a small model to follow a "score=0" rule.
         const needsLLM = candidates.filter((a) => this.negativeScorer.score(a) === 0);
         const preZeroed = candidates.filter((a) => this.negativeScorer.score(a) > 0);
 
-        console.log(
-          `[Pipeline] Layer 2 AI scoring ${needsLLM.length} candidates (${preZeroed.length} pre-zeroed by negative keywords)...`,
+        logger.info(
+          `Layer 2 AI scoring ${needsLLM.length} candidates (${preZeroed.length} pre-zeroed by negative keywords)...`,
         );
 
-        // Build a map of id → layer2Score, defaulting pre-zeroed titles to 0
         const layer2Map = new Map<string, number>(preZeroed.map((a) => [a.id, 0]));
 
         if (needsLLM.length > 0) {
           const layer2Scores = await this.llm.score(needsLLM.map((a) => a.title));
 
-          // Log each title→score pair for auditability
           needsLLM.forEach((a, idx) => {
             const s = layer2Scores[idx] ?? 0;
-            console.log(`  [L2] ${s.toString().padStart(3)}  ${a.title}`);
+            // Debug-level: only shown in verbose mode
+            logger.debug(`  [L2] ${s.toString().padStart(3)}  ${a.title}`);
             layer2Map.set(a.id, s);
           });
         }
 
         preZeroed.forEach((a) => {
-          console.log(`  [L2]   0  [pre-zeroed]  ${a.title}`);
+          logger.debug(`  [L2]   0  [pre-zeroed]  ${a.title}`);
         });
 
         finalScored = candidates.map((a) => {
           const layer2Score = layer2Map.get(a.id) ?? 0;
-          // Average of both layers only when Layer 2 is enabled
           const finalScore = Math.round((a.layer1Score + layer2Score) / 2);
           return { ...a, finalScore };
         });
-        console.log(`[Pipeline] Layer 2 complete.`);
+        logger.success(`Layer 2 complete.`);
       } else {
-        // Layer 2 disabled — use Layer 1 score as-is
         finalScored = candidates.map((a) => ({ ...a, finalScore: a.layer1Score }));
+        logger.info(`Layer 2 skipped (AI scoring disabled).`);
       }
 
       // Apply signal threshold and take top N
@@ -163,11 +161,10 @@ export class Pipeline {
         .sort((a, b) => b.finalScore - a.finalScore)
         .slice(0, this.config.preferences.maxItemsPerRun);
 
-      console.log(`[Pipeline] ${highSignal.length} high-signal items selected.`);
+      logger.info(`${highSignal.length} high-signal items selected.`);
 
       if (highSignal.length > 0) {
-        // LLM Analysis (summarise + categorise)
-        console.log('[Pipeline] Analyzing high-signal items with LLM...');
+        logger.info(`Analyzing ${highSignal.length} items with LLM...`);
         const analysisResults = await this.llm.analyze(
           highSignal.map((a) => ({ title: a.title, content: a.content })),
           { sequential: this.config.preferences.sequentialAnalysis },
@@ -180,7 +177,6 @@ export class Pipeline {
           category: analysisResults[idx]?.category || 'Uncategorized',
         }));
 
-        // Persistence
         for (const item of enrichedItems) {
           this.articleStore.upsert({
             ...item,
@@ -189,10 +185,10 @@ export class Pipeline {
           });
         }
       } else {
-        console.log('[Pipeline] No high-signal items in this batch.');
+        logger.warn(`No high-signal items in this batch.`);
       }
     } else {
-      console.log('[Pipeline] All sources are cooled down. Checking database for pending items...');
+      logger.info(`All sources cooled down — checking database for pending items...`);
     }
 
     // Build Final Digest (Current + Pending from last 24h)
@@ -208,8 +204,8 @@ export class Pipeline {
     const finalItemsToDeliver = Array.from(allToDeliverMap.values());
 
     if (finalItemsToDeliver.length === 0) {
-      console.log('[Pipeline] No high-signal items to deliver.');
-      console.log('[Pipeline] Execution complete! 🚀');
+      logger.warn(`Nothing to deliver.`);
+      logger.success(`Execution complete! 🚀`);
       return [];
     }
 
@@ -229,8 +225,8 @@ export class Pipeline {
       },
     };
 
-    console.log(
-      `[Pipeline] Delivering ${finalItemsToDeliver.length} items to ${this.delivery.length} channels...`,
+    logger.info(
+      `Delivering ${finalItemsToDeliver.length} items to ${this.delivery.length} channel(s)...`,
     );
 
     const deliveryResults = await Promise.allSettled(this.delivery.map((d) => d.send(digest)));
@@ -239,19 +235,19 @@ export class Pipeline {
     const failCount = deliveryResults.filter((r) => r.status === 'rejected').length;
 
     if (failCount > 0) {
-      console.error(`[Pipeline] ${failCount} delivery channel(s) failed.`);
       deliveryResults.forEach((r, i) => {
         if (r.status === 'rejected') {
-          console.error(`[Pipeline] Channel ${i + 1} error:`, r.reason?.message ?? r.reason);
+          logger.error(`Channel ${i + 1} failed: ${r.reason?.message ?? r.reason}`);
         }
       });
     }
 
     if (successCount > 0) {
       this.articleStore.markAsDelivered(finalItemsToDeliver.map((a) => a.id));
+      logger.success(`Delivered to ${successCount} channel(s) successfully.`);
     }
 
-    console.log('[Pipeline] Execution complete! 🚀');
+    logger.success(`Execution complete! 🚀`);
     return finalItemsToDeliver;
   }
 }
