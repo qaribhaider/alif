@@ -32,6 +32,8 @@ describe('ConfigManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(os.homedir).mockReturnValue('/mock/home');
+    // @ts-expect-error - reset singleton for tests
+    ConfigManager['instance'] = undefined;
   });
 
   it('should return correct config paths', () => {
@@ -67,5 +69,44 @@ describe('ConfigManager', () => {
       expect.stringContaining('"provider": "ollama"'),
       'utf-8',
     );
+  });
+});
+
+describe('ConfigManager Backward Compatibility', () => {
+  const mockConfigDir = '/mock/home/.config/alif';
+  const oldConfig = {
+    llm: {
+      provider: 'ollama',
+      model: 'llama3',
+      baseUrl: 'http://localhost:11434',
+    },
+    delivery: [{ type: 'slack', webhookUrl: 'https://hooks.slack.com/services/test' }],
+    preferences: {
+      signalThreshold: 60,
+      maxItemsPerCategory: 5,
+      sourceCooldownMinutes: 5,
+      sequentialAnalysis: false,
+      customKeywords: {},
+    },
+    dbPath: path.join(mockConfigDir, 'alif.db'),
+    feedsPath: path.join(mockConfigDir, 'feeds.json'),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(os.homedir).mockReturnValue('/mock/home');
+    // @ts-expect-error - reset singleton for tests
+    ConfigManager['instance'] = undefined;
+  });
+
+  it('could load config with deprecated maxItemsPerCategory and use default maxItemsPerRun', () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(oldConfig));
+
+    const manager = ConfigManager.getInstance();
+    const loaded = manager.load();
+
+    expect(loaded.preferences.maxItemsPerRun).toBe(10); // Default
+    expect(loaded.preferences.maxItemsPerCategory).toBe(5); // Deprecated property is still there
   });
 });

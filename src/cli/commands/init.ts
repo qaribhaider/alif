@@ -87,7 +87,7 @@ export async function initCommand() {
     delivery: deliveryConfigs,
     preferences: {
       signalThreshold: 60,
-      maxItemsPerCategory: 5,
+      maxItemsPerRun: 10,
       sourceCooldownMinutes: 5,
       sequentialAnalysis: response.sequentialAnalysis,
       customKeywords: {},
