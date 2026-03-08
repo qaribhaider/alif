@@ -18,8 +18,9 @@ program.name('alif').description('Alif - Daily AI Signal Digest CLI').version(ve
 program
   .command('init')
   .description('Initialize Alif configuration')
-  .action(async () => {
-    await initCommand();
+  .option('--non-interactive', 'Run without interactive prompts using environment variables')
+  .action(async (options) => {
+    await initCommand(options);
   });
 
 program

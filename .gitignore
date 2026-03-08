@@ -11,6 +11,7 @@ config.json
 feeds.json
 .env
 .env.*
+.alif-data/
 
 # Logs
 *.log

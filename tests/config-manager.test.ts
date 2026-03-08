@@ -46,6 +46,20 @@ describe('ConfigManager', () => {
     expect(manager.getConfigFile()).toBe(mockConfigFile);
   });
 
+  it('should override config path using ALIF_CONFIG_DIR', () => {
+    // @ts-expect-error - reset singleton for tests
+    ConfigManager['instance'] = undefined;
+    process.env.ALIF_CONFIG_DIR = '/custom/config/path';
+
+    const manager = ConfigManager.getInstance();
+    expect(manager.getConfigDir()).toBe(path.resolve('/custom/config/path'));
+    expect(manager.getConfigFile()).toBe(
+      path.join(path.resolve('/custom/config/path'), 'config.json'),
+    );
+
+    delete process.env.ALIF_CONFIG_DIR;
+  });
+
   it('should throw if loading non-existent config', () => {
     vi.mocked(fs.existsSync).mockReturnValue(false);
     const manager = ConfigManager.getInstance();

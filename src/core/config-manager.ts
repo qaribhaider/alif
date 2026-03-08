@@ -10,7 +10,9 @@ export class ConfigManager {
   private configFile: string;
 
   private constructor() {
-    this.configDir = path.join(os.homedir(), '.config', 'alif');
+    this.configDir = process.env.ALIF_CONFIG_DIR
+      ? path.resolve(process.env.ALIF_CONFIG_DIR)
+      : path.join(os.homedir(), '.config', 'alif');
     this.configFile = path.join(this.configDir, 'config.json');
   }
 
