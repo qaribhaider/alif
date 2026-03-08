@@ -20,7 +20,9 @@ jobs:
       - name: Cache Alif Data Directory
         uses: actions/cache@v4
         with:
-          path: .alif-data
+          path: |
+            .alif-data/alif.db
+            .alif-data/feeds.json
           key: ${{ runner.os }}-alif-data-${{ github.run_id }}
           restore-keys: |
             ${{ runner.os }}-alif-data-
@@ -64,5 +66,7 @@ jobs:
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: .alif-data
+          path: |
+            .alif-data/alif.db
+            .alif-data/feeds.json
           key: ${{ runner.os }}-alif-data-${{ github.run_id }}
