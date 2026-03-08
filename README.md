@@ -162,15 +162,21 @@ You can run Alif entirely in the cloud for free using GitHub Actions, without ev
 
 1. **Fork this repository.**
 2. Navigate to your fork's **Settings > Secrets and variables > Actions**.
-3. Add your sensitive API keys as **Repository Secrets**:
-   - `ALIF_LLM_API_KEY` (or `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`)
-   - `SLACK_WEBHOOK_URL` (or `GENERIC_WEBHOOK_URL`)
-4. Configure your preferences as **Repository Variables** (optional):
-   - `ALIF_LLM_PROVIDER` (default: anthropic)
-   - `ALIF_LLM_MODEL`
-   - `ALIF_SIGNAL_THRESHOLD` (default: 60)
-   - `ALIF_MAX_ITEMS_PER_RUN` (default: 10)
-   - `ALIF_SOURCE_COOLDOWN_MINUTES` (default: 5)
+3. Add your sensitive access credentials as **Repository Secrets**.
+4. Configure your preferences as **Repository Variables** (optional).
+
+### Environment Variables Reference
+
+| Variable                       | Type     | Possible Values                           | Default             | Description                                                                   |
+| ------------------------------ | -------- | ----------------------------------------- | ------------------- | ----------------------------------------------------------------------------- |
+| `ALIF_LLM_PROVIDER`            | Variable | `'anthropic'`, `'openrouter'`, `'ollama'` | `'anthropic'`       | The AI provider to use for analysis.                                          |
+| `ALIF_LLM_API_KEY`             | Secret   | _Your API Key_                            | -                   | Universal key. Alternatively use `ANTHROPIC_API_KEY` or `OPENROUTER_API_KEY`. |
+| `ALIF_LLM_MODEL`               | Variable | e.g. `'claude-3-5-sonnet-20240620'`       | _Provider Specific_ | The specific model to use.                                                    |
+| `SLACK_WEBHOOK_URL`            | Secret   | *https://hooks.slack.com/...*             | -                   | Webhook URL for Slack delivery.                                               |
+| `GENERIC_WEBHOOK_URL`          | Secret   | _https://..._                             | -                   | Webhook URL for generic server delivery.                                      |
+| `ALIF_SIGNAL_THRESHOLD`        | Variable | `0` - `100`                               | `60`                | Minimum score for an article to qualify.                                      |
+| `ALIF_MAX_ITEMS_PER_RUN`       | Variable | `1`+                                      | `10`                | Max articles delivered per run.                                               |
+| `ALIF_SOURCE_COOLDOWN_MINUTES` | Variable | `0`+                                      | `5`                 | Minimum gap between re-fetching a source.                                     |
 
 The included workflow (`.github/workflows/alif-scheduled-run.yml`) automatically runs every day at 8:00 AM UTC (feel free to change the schedule in your forked version), caches your database/state, and delivers your customized digest!
 
