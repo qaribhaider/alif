@@ -158,12 +158,13 @@ Config is stored at `~/.config/alif/config.json`. Most values can be changed wit
 
 ## ☁️ Running on GitHub Actions (Free)
 
-You can run Alif entirely in the cloud for free using GitHub Actions, without ever installing it locally.
+To ensure your API keys and workflow logs remain completely secure and hidden from the public, we highly recommend running this in a **Private** GitHub repository.
 
-1. **Fork this repository.**
-2. Navigate to your fork's **Settings > Secrets and variables > Actions**.
-3. Add your sensitive access credentials as **Repository Secrets**.
-4. Configure your preferences as **Repository Variables** (optional).
+1. **Create a new Private Repository** on GitHub.
+2. **Copy the example workflow:** Copy the [`examples/alif-scheduled-run.yml`](./examples/alif-scheduled-run.yml) file into your new private repository at `.github/workflows/alif-scheduled-run.yml`.
+3. Navigate to your private repository's **Settings > Secrets and variables > Actions**.
+4. Add your sensitive access credentials as **Repository Secrets**.
+5. Configure your preferences as **Repository Variables** (optional).
 
 ### Environment Variables Reference
 
@@ -178,7 +179,7 @@ You can run Alif entirely in the cloud for free using GitHub Actions, without ev
 | `ALIF_MAX_ITEMS_PER_RUN`       | Variable | `1`+                                      | `10`                | Max articles delivered per run.                                               |
 | `ALIF_SOURCE_COOLDOWN_MINUTES` | Variable | `0`+                                      | `5`                 | Minimum gap between re-fetching a source.                                     |
 
-The included workflow (`.github/workflows/alif-scheduled-run.yml`) automatically runs every day at 8:00 AM UTC (feel free to change the schedule in your forked version), caches your database/state, and delivers your customized digest!
+The included workflow automatically runs every day at 8:00 AM UTC (you can change the schedule in the file), caches your database state securely, and delivers your customized digest!
 
 ---
 
