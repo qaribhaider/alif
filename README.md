@@ -156,13 +156,31 @@ Config is stored at `~/.config/alif/config.json`. Most values can be changed wit
 }
 ```
 
+## ☁️ Running on GitHub Actions (Free)
+
+You can run Alif entirely in the cloud for free using GitHub Actions, without ever installing it locally.
+
+1. **Fork this repository.**
+2. Navigate to your fork's **Settings > Secrets and variables > Actions**.
+3. Add your sensitive API keys as **Repository Secrets**:
+   - `ALIF_LLM_API_KEY` (or `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`)
+   - `SLACK_WEBHOOK_URL` (or `GENERIC_WEBHOOK_URL`)
+4. Configure your preferences as **Repository Variables** (optional):
+   - `ALIF_LLM_PROVIDER` (default: anthropic)
+   - `ALIF_LLM_MODEL`
+   - `ALIF_SIGNAL_THRESHOLD` (default: 60)
+   - `ALIF_MAX_ITEMS_PER_RUN` (default: 10)
+   - `ALIF_SOURCE_COOLDOWN_MINUTES` (default: 5)
+
+The included workflow (`.github/workflows/alif-scheduled-run.yml`) automatically runs every day at 8:00 AM UTC (feel free to change the schedule in your forked version), caches your database/state, and delivers your customized digest!
+
 ---
 
 ## 🤝 Architecture & Contributing
 
 Interested in how Alif works under the hood or want to run it locally?
 
-Check out our [**Contributing Guidelines**](CONTRIBUTING.md) for information on the architecture, local development setup, and how to submit pull requests!
+Check out our [**Contributing Guidelines**](https://github.com/qaribhaider/alif/blob/main/CONTRIBUTING.md) for information on the architecture, local development setup, and how to submit pull requests!
 
 ---
 
