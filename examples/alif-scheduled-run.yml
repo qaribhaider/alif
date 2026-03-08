@@ -33,15 +33,15 @@ jobs:
       - name: Initialize Alif Configuration
         env:
           ALIF_CONFIG_DIR: ${{ github.workspace }}/.alif-data
-          ALIF_LLM_PROVIDER: ${{ vars.ALIF_LLM_PROVIDER || 'anthropic' }}
-          ALIF_LLM_MODEL: ${{ vars.ALIF_LLM_MODEL || '' }}
-          ALIF_LLM_BASE_URL: ${{ vars.ALIF_LLM_BASE_URL || '' }}
+          ALIF_LLM_PROVIDER: ${{ vars.ALIF_LLM_PROVIDER || secrets.ALIF_LLM_PROVIDER || 'anthropic' }}
+          ALIF_LLM_MODEL: ${{ vars.ALIF_LLM_MODEL || secrets.ALIF_LLM_MODEL || '' }}
+          ALIF_LLM_BASE_URL: ${{ vars.ALIF_LLM_BASE_URL || secrets.ALIF_LLM_BASE_URL || '' }}
           ALIF_SIGNAL_THRESHOLD: ${{ vars.ALIF_SIGNAL_THRESHOLD || '60' }}
           ALIF_MAX_ITEMS_PER_RUN: ${{ vars.ALIF_MAX_ITEMS_PER_RUN || '10' }}
           ALIF_SOURCE_COOLDOWN_MINUTES: ${{ vars.ALIF_SOURCE_COOLDOWN_MINUTES || '5' }}
           ALIF_SEQUENTIAL_ANALYSIS: ${{ vars.ALIF_SEQUENTIAL_ANALYSIS || 'false' }}
           ALIF_ENABLE_AI_SCORING: ${{ vars.ALIF_ENABLE_AI_SCORING || 'true' }}
-          ALIF_LOG_LEVEL: ${{ vars.ALIF_LOG_LEVEL || 'verbose' }}
+          ALIF_LOG_LEVEL: ${{ vars.ALIF_LOG_LEVEL || 'normal' }}
           ALIF_CUSTOM_KEYWORDS: ${{ vars.ALIF_CUSTOM_KEYWORDS || '{}' }}
           ALIF_NEGATIVE_KEYWORDS: ${{ vars.ALIF_NEGATIVE_KEYWORDS || '{}' }}
           ALIF_NO_COLOR: ${{ vars.ALIF_NO_COLOR || 'false' }}
@@ -49,6 +49,7 @@ jobs:
           ALIF_LLM_API_KEY: ${{ secrets.ALIF_LLM_API_KEY || '' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || '' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || '' }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY || '' }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL || '' }}
           GENERIC_WEBHOOK_URL: ${{ secrets.GENERIC_WEBHOOK_URL || '' }}
         run: alif init --non-interactive
