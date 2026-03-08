@@ -1,8 +1,8 @@
 import { ScrapedArticle } from '../scraper-types.js';
 // @ts-expect-error - no types available for talisman
-import fingerprint from 'talisman/keyers/fingerprint';
+import fingerprint from 'talisman/keyers/fingerprint.js';
 // @ts-expect-error - no types available for talisman
-import dice from 'talisman/metrics/dice';
+import dice from 'talisman/metrics/dice.js';
 
 export interface DeduplicatorOptions {
   similarityThreshold?: number; // Dice coefficient threshold (0 to 1). Default is 0.7.
