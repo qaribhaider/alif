@@ -1,0 +1,27 @@
+version: 2
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'saturday'
+      time: '09:00'
+      timezone: 'UTC'
+    open-pull-requests-limit: 1
+    groups:
+      all-dependencies:
+        patterns:
+          - '*'
+    target-branch: 'main'
+    versioning-strategy: 'auto'
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+    reviewers:
+      - 'qaribhaider'
+    pull-request-branch-name:
+      separator: '-'
+    rebase-strategy: 'auto'
