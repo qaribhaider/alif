@@ -37,6 +37,14 @@
   ],
   "author": "qaribhaider",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qaribhaider/alif.git"
+  },
+  "bugs": {
+    "url": "https://github.com/qaribhaider/alif/issues"
+  },
+  "homepage": "https://github.com/qaribhaider/alif#readme",
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.58",
     "@ai-sdk/openai": "^3.0.41",
