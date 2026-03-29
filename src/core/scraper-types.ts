@@ -17,6 +17,7 @@ export interface ScraperSource {
   tags?: string[];
   selector?: string;
   mapping?: Record<string, string>;
+  curationScore?: number;
 }
 
 export interface ScraperResult {

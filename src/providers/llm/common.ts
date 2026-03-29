@@ -59,17 +59,17 @@ export function getSinglePrompt(article: { title: string; content?: string }[]):
  * Generates the scoring prompt for Layer 2 — batches all titles and asks for a score per item.
  */
 export function getScoringPrompt(titles: string[]): string {
-  return `You are an AI news relevance scorer for a developer and researcher audience.
-Rate each article title from 0 to 100 based on its genuine importance and novelty to the AI/ML industry.
+  return `You are an AI signal analyst for a developer/researcher audience.
+Rate each article title from 0 to 100 based on its grounding in major, structural AI/ML breakthroughs.
 
-SCORING RULES:
-- 80-100: Groundbreaking news (e.g. major model release like GPT-5, AGI milestone, paradigm-shifting tool launch like Cline or Cursor)
-- 50-79:  Significant but not earth-shattering (e.g. major funding round, hardware release, useful open-source model)
-- 20-49:  Mildly interesting (e.g. policy updates, incremental improvements, research papers)
-- 1-19:   Low signal (e.g. tutorials, opinion pieces, listicles)
-- 0:      No signal — MUST be 0 for: sponsored content, advertisements, waitlists, discount/deal posts, clickbait listicles ("Top 10…"), or anything purely promotional
+SCORING RUBRIC (BE RUTHLESS):
+- 90-100: INDUSTRY SHIFTS. Major lab model releases (e.g. GPT-5, SOTA Reasoning), massive M&A/IPOs, paradigm-shifting local agent tools (e.g. Cline, Cursor, OpenClaw updates), or AGI-critical safety/infrastructure milestones.
+- 70-89:  SOTA ADVANCEMENTS. High-quality research on inference scaling, new agentic orchestration patterns (MCP, Multi-agent swarms), hardware breakthroughs (e.g. Blackwell, Rubin), or major open-source weights (Llama 4, Mistral SOTA).
+- 40-69:  TECHNICAL/PRACTICAL. Useful AI engineering guides, policy updates with real impact, niche research in specific domains (medical/physics AI), or notable startup funding rounds.
+- 10-39:  NOISE/INCREMENTAL. Minor app updates, incremental wrapper news, general think-pieces, or "how-to" tutorials.
+- 0:      ZERO SIGNAL. MUST be 0 for: sponsored/paid content, deals/discounts, "Top 10" listicles, terminal/CLI toy projects not related to AI, bypassing/jailbreaking news, or dating apps.
 
-IMPORTANT: You MUST return exactly ${titles.length} scores, one per title, in the exact same order. DO NOT output index numbers or a sequential list. Output the actual computed score for each title.
+IMPORTANT: You MUST return exactly ${titles.length} scores, one per title, in the exact same order. DO NOT output index numbers. Output the actual computed score for each title.
 
 Titles to score:
 ${titles.map((t) => `- ${t}`).join('\n')}

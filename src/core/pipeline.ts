@@ -98,11 +98,16 @@ export class Pipeline {
       // Deduplication (Exact URL/Title mapping only on massive arrays)
       const unique = this.deduplicator.removeExactDuplicates(newItems);
 
-      // --- LAYER 1: Keyword - Negative ---
+      // --- LAYER 1: Keyword - Negative + Source Curation Boost ---
       const layer1Scored = unique.map((a) => {
         const positive = this.scorer.score(a);
         const negative = this.negativeScorer.score(a);
-        const layer1Score = Math.max(0, positive - negative);
+
+        // Find source curation score boost (1-100 -> 0.1-10.0 boost)
+        const sourceData = activeSources.find((s) => s.id === a.source);
+        const curationBoost = (sourceData?.curationScore ?? 50) / 10;
+
+        const layer1Score = Math.max(0, positive - negative + curationBoost);
         return { ...a, layer1Score };
       });
 
