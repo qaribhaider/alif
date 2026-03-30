@@ -60,6 +60,9 @@ export async function initCommand(options?: { nonInteractive?: boolean }) {
         maxItemsPerRun: process.env.ALIF_MAX_ITEMS_PER_RUN
           ? parseInt(process.env.ALIF_MAX_ITEMS_PER_RUN, 10)
           : 10,
+        maxArticleAgeDays: process.env.ALIF_MAX_ARTICLE_AGE_DAYS
+          ? parseInt(process.env.ALIF_MAX_ARTICLE_AGE_DAYS, 10)
+          : 14,
         sourceCooldownMinutes: process.env.ALIF_SOURCE_COOLDOWN_MINUTES
           ? parseInt(process.env.ALIF_SOURCE_COOLDOWN_MINUTES, 10)
           : 5,
@@ -166,6 +169,7 @@ export async function initCommand(options?: { nonInteractive?: boolean }) {
       preferences: {
         signalThreshold: 60,
         maxItemsPerRun: 10,
+        maxArticleAgeDays: 14,
         sourceCooldownMinutes: 5,
         sequentialAnalysis: response.sequentialAnalysis,
         enableAIArticlesScoring: response.enableAIArticlesScoring,

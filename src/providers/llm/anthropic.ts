@@ -10,6 +10,8 @@ import {
 } from './common.js';
 import { logger } from '../../core/logger.js';
 
+const LLM_TIMEOUT_MS = 300 * 1000; // 5 minutes timeout
+
 export class AnthropicProvider implements LLMProvider {
   private latestDebugInfo: LLMDebugInfo | null = null;
   private provider: ReturnType<typeof createAnthropic>;
@@ -29,14 +31,19 @@ export class AnthropicProvider implements LLMProvider {
     const prompt = getBatchPrompt(articles);
 
     const startTime = Date.now();
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), LLM_TIMEOUT_MS);
+
     try {
       const { output } = await generateText({
         model: this.provider(this.options.model),
         output: Output.object({ schema: AnalysisSchema }),
         system: SYSTEM_PROMPT,
         prompt,
+        abortSignal: abortController.signal,
       });
 
+      clearTimeout(timeoutId);
       const latencyMs = Date.now() - startTime;
       this.latestDebugInfo = {
         prompt,
@@ -45,7 +52,8 @@ export class AnthropicProvider implements LLMProvider {
       };
 
       return output.signals;
-    } catch (error) {
+    } catch (error: any) {
+      clearTimeout(timeoutId);
       logger.error(`[Anthropic] Error: ${error instanceof Error ? error.message : String(error)}`);
 
       this.latestDebugInfo = {
@@ -61,15 +69,22 @@ export class AnthropicProvider implements LLMProvider {
   async score(titles: string[]): Promise<number[]> {
     if (titles.length === 0) return [];
     const prompt = getScoringPrompt(titles);
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), LLM_TIMEOUT_MS);
+
     try {
       const { output } = await generateText({
         model: this.provider(this.options.model),
         output: Output.object({ schema: ScoringSchema }),
         system: SYSTEM_PROMPT,
         prompt,
+        abortSignal: abortController.signal,
       });
+      clearTimeout(timeoutId);
       return output.scores;
-    } catch {
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      logger.error(`[Anthropic] Scoring Error: ${error?.message || String(error)}`);
       return titles.map(() => 0);
     }
   }

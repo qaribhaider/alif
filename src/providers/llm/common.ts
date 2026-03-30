@@ -52,24 +52,33 @@ ${articles.map((a, idx) => `ID ${idx}: ${a.title}`).join('\n')}
  */
 export function getSinglePrompt(article: { title: string; content?: string }[]): string {
   const a = article[0]; // Usually passed as array of one
-  return `Analyze this AI news item: "${a.title}". Provide a "summary" (one sentence) and a "category".`;
+  return `Analyze this technical news item title: "${a.title}". 
+
+INSTRUCTION (STRICT):
+- Provide a "summary" (exactly one sentence, max 20 words).
+- Extract information ONLY from the provided title.
+- DO NOT invent facts (e.g., do not name projects, leads, or specs unless explicitly in the title).
+- Provide a "category" (e.g. Model Release, Open Source, Event, Research, Tool/SDK, Policy).
+`;
 }
 
 /**
  * Generates the scoring prompt for Layer 2 — batches all titles and asks for a score per item.
  */
 export function getScoringPrompt(titles: string[]): string {
-  return `You are an AI news relevance scorer for a developer and researcher audience.
-Rate each article title from 0 to 100 based on its genuine importance and novelty to the AI/ML industry.
+  return `You are an elite technology signal reviewer for a high-performance engineering audience.
+Rate each title on its genuine relevance and "happenstance" (is something actually happening?).
 
-SCORING RULES:
-- 80-100: Groundbreaking news (e.g. major model release like GPT-5, AGI milestone, paradigm-shifting tool launch like Cline or Cursor)
-- 50-79:  Significant but not earth-shattering (e.g. major funding round, hardware release, useful open-source model)
-- 20-49:  Mildly interesting (e.g. policy updates, incremental improvements, research papers)
-- 1-19:   Low signal (e.g. tutorials, opinion pieces, listicles)
-- 0:      No signal — MUST be 0 for: sponsored content, advertisements, waitlists, discount/deal posts, clickbait listicles ("Top 10…"), or anything purely promotional
+SCORING PHILOSOPHY (BE RUTHLESS):
+- 80-100: DISRUPTIVE EVENTS. Major model releases (GPT-5, Llama 4), M&A (acquisitions), new hardware (Blackwell), societal impacts (bans/laws), or GROUNDBREAKING OPEN-SOURCE (Trending AI repo launches).
+- 50-79:  HIGH NOVELTY & ADVANCEMENTS. Exceptional technical breakthroughs (including legacy tech history like Voyager 1), or major research papers with proven SOTA results.
+- 0-49:   TRASH (Zero Signal). MUST be 0-49 for:
+    - Incremental marketing (e.g. "Now expanding to iOS", "Flash Live updates", "New regional availability").
+    - Theoretical meta-discussion (Frameworks, Specs, System Cards, Research "Approaches").
+    - Internal process PR (Safety Spec, Policy Blueprint, Team culture posts).
+    - Generic tutorials, listicles, or terminal toy projects.
 
-IMPORTANT: You MUST return exactly ${titles.length} scores, one per title, in the exact same order. DO NOT output index numbers or a sequential list. Output the actual computed score for each title.
+IMPORTANT: You MUST return exactly ${titles.length} scores, one per title, in the exact same order. DO NOT output index numbers. Output ONLY the computed score for each title.
 
 Titles to score:
 ${titles.map((t) => `- ${t}`).join('\n')}
