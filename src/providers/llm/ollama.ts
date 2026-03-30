@@ -12,6 +12,8 @@ import {
 } from './common.js';
 import { logger } from '../../core/logger.js';
 
+const LLM_TIMEOUT_MS = 300 * 1000; // 5 minutes timeout
+
 export class OllamaProvider implements LLMProvider {
   private model: any;
   private latestDebugInfo: LLMDebugInfo | null = null;
@@ -41,6 +43,9 @@ export class OllamaProvider implements LLMProvider {
     const prompt = getBatchPrompt(articles);
 
     const startTime = Date.now();
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), LLM_TIMEOUT_MS);
+
     try {
       const { output } = await generateText({
         model: this.model,
@@ -48,8 +53,10 @@ export class OllamaProvider implements LLMProvider {
         system: SYSTEM_PROMPT,
         prompt,
         providerOptions: { ollama: { think: false } },
+        abortSignal: abortController.signal,
       });
 
+      clearTimeout(timeoutId);
       const latencyMs = Date.now() - startTime;
       this.latestDebugInfo = {
         prompt,
@@ -59,6 +66,7 @@ export class OllamaProvider implements LLMProvider {
 
       return output.signals;
     } catch (error) {
+      clearTimeout(timeoutId);
       this.handleError(error, prompt, startTime);
       return this.getFallbackResults(articles);
     }
@@ -143,15 +151,22 @@ export class OllamaProvider implements LLMProvider {
   async score(titles: string[]): Promise<number[]> {
     if (titles.length === 0) return [];
     const prompt = getScoringPrompt(titles);
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), LLM_TIMEOUT_MS);
+
     try {
       const { output } = await generateText({
         model: this.model,
         output: Output.object({ schema: ScoringSchema }),
         prompt,
         providerOptions: { ollama: { think: false } },
+        abortSignal: abortController.signal,
       });
+      clearTimeout(timeoutId);
       return output.scores;
-    } catch {
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      logger.error(`[Ollama] Scoring Error: ${error?.message || String(error)}`);
       return titles.map(() => 0);
     }
   }

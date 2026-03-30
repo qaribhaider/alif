@@ -52,24 +52,33 @@ ${articles.map((a, idx) => `ID ${idx}: ${a.title}`).join('\n')}
  */
 export function getSinglePrompt(article: { title: string; content?: string }[]): string {
   const a = article[0]; // Usually passed as array of one
-  return `Analyze this AI news item: "${a.title}". Provide a "summary" (one sentence) and a "category".`;
+  return `Analyze this technical news item title: "${a.title}". 
+
+INSTRUCTION (STRICT):
+- Provide a "summary" (exactly one sentence, max 20 words).
+- Extract information ONLY from the provided title.
+- DO NOT invent facts (e.g., do not name projects, leads, or specs unless explicitly in the title).
+- Provide a "category" (e.g. Model Release, Open Source, Event, Research, Tool/SDK, Policy).
+`;
 }
 
 /**
  * Generates the scoring prompt for Layer 2 — batches all titles and asks for a score per item.
  */
 export function getScoringPrompt(titles: string[]): string {
-  return `You are an AI signal analyst for a developer/researcher audience.
-Rate each article title from 0 to 100 based on its grounding in major, structural AI/ML breakthroughs.
+  return `You are an elite technology signal reviewer for a high-performance engineering audience.
+Rate each title on its genuine relevance and "happenstance" (is something actually happening?).
 
-SCORING RUBRIC (BE RUTHLESS):
-- 90-100: INDUSTRY SHIFTS. Major lab model releases (e.g. GPT-5, SOTA Reasoning), massive M&A/IPOs, paradigm-shifting local agent tools (e.g. Cline, Cursor, OpenClaw updates), or AGI-critical safety/infrastructure milestones.
-- 70-89:  SOTA ADVANCEMENTS. High-quality research on inference scaling, new agentic orchestration patterns (MCP, Multi-agent swarms), hardware breakthroughs (e.g. Blackwell, Rubin), or major open-source weights (Llama 4, Mistral SOTA).
-- 40-69:  TECHNICAL/PRACTICAL. Useful AI engineering guides, policy updates with real impact, niche research in specific domains (medical/physics AI), or notable startup funding rounds.
-- 10-39:  NOISE/INCREMENTAL. Minor app updates, incremental wrapper news, general think-pieces, or "how-to" tutorials.
-- 0:      ZERO SIGNAL. MUST be 0 for: sponsored/paid content, deals/discounts, "Top 10" listicles, terminal/CLI toy projects not related to AI, bypassing/jailbreaking news, or dating apps.
+SCORING PHILOSOPHY (BE RUTHLESS):
+- 80-100: DISRUPTIVE EVENTS. Major model releases (GPT-5, Llama 4), M&A (acquisitions), new hardware (Blackwell), societal impacts (bans/laws), or GROUNDBREAKING OPEN-SOURCE (Trending AI repo launches).
+- 50-79:  HIGH NOVELTY & ADVANCEMENTS. Exceptional technical breakthroughs (including legacy tech history like Voyager 1), or major research papers with proven SOTA results.
+- 0-49:   TRASH (Zero Signal). MUST be 0-49 for:
+    - Incremental marketing (e.g. "Now expanding to iOS", "Flash Live updates", "New regional availability").
+    - Theoretical meta-discussion (Frameworks, Specs, System Cards, Research "Approaches").
+    - Internal process PR (Safety Spec, Policy Blueprint, Team culture posts).
+    - Generic tutorials, listicles, or terminal toy projects.
 
-IMPORTANT: You MUST return exactly ${titles.length} scores, one per title, in the exact same order. DO NOT output index numbers. Output the actual computed score for each title.
+IMPORTANT: You MUST return exactly ${titles.length} scores, one per title, in the exact same order. DO NOT output index numbers. Output ONLY the computed score for each title.
 
 Titles to score:
 ${titles.map((t) => `- ${t}`).join('\n')}

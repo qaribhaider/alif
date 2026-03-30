@@ -53,8 +53,16 @@ export const BASE_KEYWORDS: Record<string, number> = {
 
   // Models & Ecosystem
   llm: 35,
-  'open source': 30,
+  'open source': 40,
   'open weights': 30,
+  github: 25,
+  repo: 25,
+  repository: 25,
+  traction: 20,
+  acquire: 40,
+  launch: 30,
+  ban: 30,
+  broken: 30,
   llama: 25,
   deepseek: 25,
   mistral: 25,
@@ -104,4 +112,15 @@ export const NEGATIVE_KEYWORDS: Record<string, number> = {
   'red team': 35,
   leak: 30,
   rumor: 30,
+
+  // Meta-discussion & PR Noise
+  framework: 20,
+  spec: 20,
+  approach: 15,
+  measuring: 15,
+  insight: 10,
+  'system card': 40,
+  expanding: 15,
+  'now on': 15,
+  blueprint: 15,
 };
