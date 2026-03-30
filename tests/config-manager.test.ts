@@ -24,6 +24,7 @@ describe('ConfigManager', () => {
       sourceCooldownMinutes: 5,
       sequentialAnalysis: false,
       enableAIArticlesScoring: true,
+      maxArticleAgeDays: 14,
       customKeywords: {},
       negativeKeywords: {},
       logLevel: 'normal' as const,

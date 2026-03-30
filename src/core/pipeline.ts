@@ -82,70 +82,104 @@ export class Pipeline {
       const allArticles = results.flatMap((r) => r.items);
       logger.info(`Found ${allArticles.length} raw items.`);
 
-      // Incremental filter
+      // --- Freshness & Incremental Filter ---
+      const now = Date.now();
+      const maxAgeMs = (this.config.preferences.maxArticleAgeDays ?? 14) * 24 * 60 * 60 * 1000;
       const latestTimestamp = this.articleStore.getLatestTimestamp();
-      let newItems = allArticles;
-      if (latestTimestamp) {
-        const lastTime = new Date(latestTimestamp).getTime();
-        newItems = allArticles.filter((a) => {
-          if (!a.published_at) return true;
-          return new Date(a.published_at).getTime() > lastTime;
-        });
-      }
-      newItemsCount = newItems.length;
-      logger.info(`${newItemsCount} new items after incremental filter.`);
+      const lastTime = latestTimestamp ? new Date(latestTimestamp).getTime() : 0;
 
-      // Deduplication (Exact URL/Title mapping only on massive arrays)
-      const unique = this.deduplicator.removeExactDuplicates(newItems);
+      const freshItems = allArticles.filter((a) => {
+        if (!a.published_at) return true; // Keep if unknown, but prioritize fresh
+        const pubTime = new Date(a.published_at).getTime();
+        const ageMs = now - pubTime;
 
-      // --- LAYER 1: Keyword - Negative ---
+        // Must be newer than max allowed age AND newer than what we already have in DB
+        return ageMs <= maxAgeMs && pubTime > lastTime;
+      });
+
+      newItemsCount = freshItems.length;
+      logger.info(`${newItemsCount} items passed freshness filter.`);
+
+      // Deduplication (Exact URL/Title mapping)
+      const unique = this.deduplicator.removeExactDuplicates(freshItems);
+
+      // --- LAYER 1: Keyword Scoring + Normalization ---
+      const SCORE_CAP = 150; // Normalize raw points to 0-100 range
+      const ELITE_SOURCES = ['openai', 'deepmind', 'anthropic', 'google_ai', 'meta'];
+
       const layer1Scored = unique.map((a) => {
         const positive = this.scorer.score(a);
         const negative = this.negativeScorer.score(a);
-        const layer1Score = Math.max(0, positive - negative);
+
+        // Find curation boost (base curationScore + elite bonus)
+        const sourceConfig = activeSources.find((f) => f.id === a.source);
+        let curationBase = sourceConfig?.curationScore ?? 50;
+        if (ELITE_SOURCES.includes(a.source)) curationBase += 10;
+
+        const curationBoost = curationBase / 10;
+
+        const rawNet = Math.max(0, positive - negative + curationBoost);
+        // Map raw score to 0-100 (Normalization)
+        const layer1Score = Math.round(Math.min(100, (rawNet / SCORE_CAP) * 100));
+
         return { ...a, layer1Score };
       });
 
       logger.info(`Layer 1 scoring complete — ${layer1Scored.length} candidates ranked.`);
 
-      // Take top N strictly by Layer 1 score first to prune the loop size
-      const sortedL1 = layer1Scored.sort((a, b) => b.layer1Score - a.layer1Score).slice(0, 150);
+      // --- Semantic (Fuzzy) Deduplication (All items) ---
+      // We perform deduplication across ALL candidates before pruning to ensure
+      // an authoritative (but subtle) title from an elite source isn't
+      // accidentally pruned while its noisy synonym is kept.
+      const authoritySorted = [...layer1Scored].sort((a, b) => {
+        const aConfig = activeSources.find((f) => f.id === a.source);
+        const bConfig = activeSources.find((f) => f.id === b.source);
+        const aCuration =
+          (aConfig?.curationScore ?? 0) + (ELITE_SOURCES.includes(a.source) ? 10 : 0);
+        const bCuration =
+          (bConfig?.curationScore ?? 0) + (ELITE_SOURCES.includes(b.source) ? 10 : 0);
+        return bCuration - aCuration || b.layer1Score - a.layer1Score;
+      });
 
-      // Fuzzy Title Deduplication (O(N^2) string matching - now highly optimized since N=150)
-      const semanticDeduped = this.deduplicator.removeFuzzyDuplicates(sortedL1);
+      const uniqueSemantic = this.deduplicator.removeFuzzyDuplicates(authoritySorted);
+      logger.info(`Fuzzy deduplication complete — ${uniqueSemantic.length} unique topics found.`);
 
-      // Lightweight Topic/Keyword Deduplication
-      // We want to avoid sending 5 different "GPT" articles to the LLM.
-      // We iterate through our top candidates and track which keywords they "fire" on.
-      // If a candidate fires ONLY on keywords we've already "seen" from higher candidates, we skip it.
-      const uniqueCandidates: typeof sortedL1 = [];
+      // --- Pruning to Top Candidates ---
+      // Take top 150 strictly by Layer 1 score for the final topic-claiming pass
+      const sortedL1 = uniqueSemantic.sort((a, b) => b.layer1Score - a.layer1Score).slice(0, 150);
+      logger.info(`Pruned to top ${sortedL1.length} candidates for final topic-claiming pass.`);
+
+      // --- Advanced Topic Deduplication (Source-Aware) ---
+      // Re-sort by source quality so elite sources "claim" topics first in the final batch.
+      const topicSourceSorted = sortedL1.sort((a, b) => {
+        const aConfig = activeSources.find((f) => f.id === a.source);
+        const bConfig = activeSources.find((f) => f.id === b.source);
+        const aCuration =
+          (aConfig?.curationScore ?? 0) + (ELITE_SOURCES.includes(a.source) ? 10 : 0);
+        const bCuration =
+          (bConfig?.curationScore ?? 0) + (ELITE_SOURCES.includes(b.source) ? 10 : 0);
+        return bCuration - aCuration || b.layer1Score - a.layer1Score;
+      });
+
+      const uniqueCandidates: typeof topicSourceSorted = [];
       const seenKeywords = new Set<string>();
+      const keywordList = Object.keys(this.scorer.getKeywords());
 
-      const allScoringKeywords = Object.keys(this.scorer.getKeywords());
-
-      for (const item of semanticDeduped) {
+      for (const item of topicSourceSorted) {
         if (uniqueCandidates.length >= LAYER2_CANDIDATE_LIMIT) break;
 
-        const titleLower = item.title.toLowerCase();
-        const contentLower = item.content?.toLowerCase() || '';
+        const text = `${item.title} ${item.content || ''}`.toLowerCase();
+        const matches = keywordList.filter((kw) => text.includes(kw.toLowerCase()));
 
-        // Find which keywords this article matches
-        const matches = allScoringKeywords.filter((k) => {
-          const kwLower = k.toLowerCase();
-          return titleLower.includes(kwLower) || contentLower.includes(kwLower);
-        });
+        // If it only matches keywords we already saw from BETTER sources, skip it.
+        const isTopicDupe = matches.length > 0 && matches.every((kw) => seenKeywords.has(kw));
 
-        // If it defines NEW keywords we haven't seen in higher-ranked articles, keep it.
-        // If it matches NO keywords (just consensus score), keep it.
-        // If it only matches keywords we already have coverage for, drop it.
-        const isDuplicateTopic = matches.length > 0 && matches.every((k) => seenKeywords.has(k));
-
-        if (!isDuplicateTopic) {
+        if (!isTopicDupe) {
           uniqueCandidates.push(item);
-          matches.forEach((k) => seenKeywords.add(k));
+          matches.forEach((kw) => seenKeywords.add(kw));
         } else {
           logger.debug(
-            `[Dedupe] Skipping "${item.title}" (topic already covered by: ${matches.join(',')})`,
+            `[Dedupe] Avoiding "${item.title}" (topic already claimed by high-score source)`,
           );
         }
       }
@@ -155,10 +189,10 @@ export class Pipeline {
       let finalScored: ((typeof candidates)[0] & { finalScore: number })[];
 
       if (this.config.preferences.enableAIArticlesScoring) {
-        // --- LAYER 2: LLM-based scoring ---
-        // Pre-filter: force-zero any candidate already matching negative keywords.
-        const needsLLM = candidates.filter((a) => this.negativeScorer.score(a) === 0);
-        const preZeroed = candidates.filter((a) => this.negativeScorer.score(a) > 0);
+        // --- LAYER 2: LLM-based reasoning ---
+        // We allow some "meta-heavy" items to pass to LLM if they are borderline (rawNeg <= 20)
+        const needsLLM = candidates.filter((a) => this.negativeScorer.score(a) <= 20);
+        const preZeroed = candidates.filter((a) => this.negativeScorer.score(a) > 20);
 
         logger.info(
           `Layer 2 AI scoring ${needsLLM.length} candidates (${preZeroed.length} pre-zeroed by negative keywords)...`,
@@ -176,29 +210,26 @@ export class Pipeline {
               const batchScores = await this.llm.score(batch.map((a) => a.title));
               // Ensure we align scores, padding with 0 if LLM returned too few
               layer2Scores.push(...batch.map((_, idx) => batchScores[idx] ?? 0));
-            } catch {
+            } catch (err: any) {
+              logger.error(`!!! LLM Scoring Failed for batch: ${err?.message || String(err)}`);
               layer2Scores.push(...batch.map(() => 0));
             }
           }
 
           needsLLM.forEach((a, idx) => {
             const s = layer2Scores[idx] ?? 0;
-            // Debug-level: only shown in verbose mode
             logger.debug(`  [L2] ${s.toString().padStart(3)}  ${a.title}`);
             layer2Map.set(a.id, s);
           });
         }
 
-        preZeroed.forEach((a) => {
-          logger.debug(`  [L2]   0  [pre-zeroed]  ${a.title}`);
-        });
-
         finalScored = candidates.map((a) => {
           const layer2Score = layer2Map.get(a.id) ?? 0;
-          const finalScore = Math.round(a.layer1Score * 0.7 + layer2Score * 0.3);
+          // Final Weight: 40% Keywords (L1) / 60% AI Reasoning (L2)
+          const finalScore = Math.round(a.layer1Score * 0.4 + layer2Score * 0.6);
           return { ...a, finalScore };
         });
-        logger.success(`Layer 2 complete.`);
+        logger.success(`Layer 2 reasoning complete.`);
       } else {
         finalScored = candidates.map((a) => ({ ...a, finalScore: a.layer1Score }));
         logger.info(`Layer 2 skipped (AI scoring disabled).`);

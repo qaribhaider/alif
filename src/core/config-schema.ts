@@ -21,6 +21,7 @@ export const ConfigSchema = z.object({
     maxItemsPerRun: z.number().min(1).default(10),
     /** @deprecated Use maxItemsPerRun instead */
     maxItemsPerCategory: z.number().optional(),
+    maxArticleAgeDays: z.number().min(0).default(14),
     sourceCooldownMinutes: z.number().min(0).default(5),
     sequentialAnalysis: z.boolean().default(false),
     enableAIArticlesScoring: z.boolean().default(true),
